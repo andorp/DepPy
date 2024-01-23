@@ -6,9 +6,10 @@ Created on Tue Jan 16 10:49:44 2024
 @author: psztxa
 """
 
+from check import check
+
 """
 data Nat : Set
-
 """
 
 class Nat : # abstract: no __init__!
@@ -21,6 +22,9 @@ class Nat : # abstract: no __init__!
     def double(self) : # () : Nat
         return self.add(self)
     
+    # Type definitions must have a pass at the end.
+    pass
+
 class Zero (Nat) : 
     # ASSERT __dict__ : {}
     # DERIVED <Zero->Nat>(x) : Nat
@@ -39,6 +43,7 @@ class Succ (Nat) :
     # ASSERT __dict__ :{ "n" : Nat }
     # DERIVED <Succ->Nat>(x) : Nat
     def __init__(self,n) : # n : Nat
+        check(n,Nat)
         self.n = n
         
     def add(self,m) : # (m : Nat) : Nat 
@@ -60,7 +65,6 @@ def Pred(Nat) :
 
 """
 Nat = Zero () | Succ (n : Nat)
-
 """
 
         
