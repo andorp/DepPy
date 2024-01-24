@@ -60,22 +60,26 @@ class Succ (Nat) :
     def __repr__(self) :
         return f"Succ({self.n})"
 
-"""        
-def Pred(Nat) :
-    def __init__(self,n) : # n : Nat
-        self.n = n
-        
-    def add(self,m) : # m : Nat 
-        return Pred(self.n.add(m))
-        
-    def __repr__(self) :
-        return f"Pred({self.n})"
-"""
+# Eliminator(?) of the natural numbers
+# Visitor pattern for Nats (Foldable+Traversable)
+class NatElim [T] :
+    # TODO: replace T
+    def zero(self)     -> T : pass
+    def succ(self,t:T) -> T : pass
+    pass
+
+def natElim(k:Nat,elim:NatElim):
+    # TODO: Tail recursion?
+    if isinstance(k,Zero):
+        elim.zero()
+    elif isinstance(k,Succ):
+        elim.succ(natElim(k.n))
+    else:
+        raise TypeError("natElim: parameter not of type Nat")
 
 """
 Nat = Zero () | Succ (n : Nat)
 """
-
         
 # Examples
         
