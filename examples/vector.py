@@ -9,21 +9,29 @@ from nat import *
 
 # Type definition
 
+# Type constructors
 class Vector:
-  n : Nat
-  T : type
-  def __init__(self,n:Nat,t:type):
+  
+  def __init__(self,n,T):
+    # Type constructors can have parameters, they must be initialized in the constructor.
+    # The type of the parameters (indexes?) must be checked in the type constructor
+    check(n,Nat)
+    check(T,type)
     self.n = n
-    self.T = t
+    self.T = T
+    pass
+  
   pass
 
+# Data constructor
 class Nil(Vector) :
-  def __init__(self,t:type):
-    Vector.__init__(self,Zero(),t)
+  def __init__(self,T:type):
+    Vector.__init__(self,Zero(),T)
 
   def __repr__(self):
     return f"Nil()"
 
+# Data constructor
 class Cons(Vector) :
   def __init__(self,x,xs):
     check(xs,Vector)
@@ -34,6 +42,8 @@ class Cons(Vector) :
   
   def __repr__(self):
     return f"Succ({self.x},{self.xs})"
+
+# Examples
 
 empty = Nil(int)
 cons = Cons(1,empty)

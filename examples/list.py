@@ -8,23 +8,31 @@ from check import check
 
 # Homogenous list
 
+# Abstract type, one layer of inheritance, type parameters are part of the abstract type.
+
 # Type definition
 
+# Type constructors
 class List:
-  T : type
-  def __init__(self,t):
-    check(t,type)
-    self.T = t
-  pass # Still represent an abstract type
+  def __init__(self,T):
+    check(T,type)
+    # Type constructors can have parameters, they must be initialized in the constructor.
+    self.T = T
+    pass
+  
+  pass # Represents a type
 
+# Data constructor
 class Nil (List) :
 
-  def __init__(self,t):
-    List.__init__(self,t)
+  def __init__(self,T):
+    List.__init__(self,T)
 
   def __repr__(self) :
     return f"Nil()"
 
+
+# Data constructor
 class Cons (List) :
 
   def __init__(self,x,xs):
@@ -37,8 +45,7 @@ class Cons (List) :
   def __repr__(self) :
     return f"Cons({self.x},{self.xs})"
 
-# Abstract type, one layer of inheritance, type parameters are part of the abstract type.
-# Telescope?
+# Examples
 
 empty = Nil(int)
 singleton = Cons(3,empty)
