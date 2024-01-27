@@ -4,7 +4,7 @@
 @author: andorp
 """
 
-from check import check
+from check import check, same
 from nat import *
 
 # Type definition
@@ -17,6 +17,9 @@ class Vector:
     # The type of the parameters (indexes?) must be checked in the type constructor
     check(n,Nat)
     check(T,type)
+    # The data constructors associated with the type will always have access to
+    # the indices/parameters of the instanciated type. In this sense we always
+    # get an existential, as we carry around information.
     self.n = n
     self.T = T
     pass
@@ -45,8 +48,18 @@ class Cons(Vector) :
 
 # Examples
 
-empty = Nil(int)
-cons = Cons(1,empty)
+vector = Vector(0,Nat) # Example of the type
+empty = Nil(int)       # Example of the empty vector
+cons = Cons(1,empty)   # Example of the singleton vector
 
 print(empty)
 print(cons)
+
+# Example of a double length storage
+class DoubleLength :
+
+  def __init__(self, n, xs):
+    check(n,Nat)
+    check(xs,Vector)
+    same(xs.n, 2*n)
+    self.xs = xs
