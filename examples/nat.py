@@ -27,7 +27,11 @@ class Nat : # abstract: no __init__!
     
     def double(self) : # () : Nat
         return self.add(self)
-    
+
+    # Equivalence checking, defined by the user.    
+    def __same__(self,b):
+        pass
+
     # Type definitions must have a pass at the end.
     pass
 
@@ -45,6 +49,10 @@ class Zero (Nat) :
     def add(self,m) :
         return m
 
+    def __same__(self,b):
+      check(b,Nat)
+      return isinstance(b,Zero)
+
 # Data constructor
 class Succ (Nat) : 
     # n : Nat
@@ -59,6 +67,13 @@ class Succ (Nat) :
         
     def __repr__(self) :
         return f"Succ({self.n})"
+
+    def __same__(self,b):
+        check(b,Nat)
+        if isinstance(b,Succ):
+            return self.n.__same__(b.n)
+        else:
+            return False
 
 # Eliminator(?) of the natural numbers
 # Visitor pattern for Nats (Foldable+Traversable)
@@ -83,6 +98,7 @@ Nat = Zero () | Succ (n : Nat)
         
 # Examples
         
-two = Succ(Succ(Zero()))
-three = Succ(two)
+nat = Nat()               # Example of te type Nat
+two = Succ(Succ(Zero()))  # Example of the value 2
+three = Succ(two)         # Example of the value 3
 print(two.add(three))
