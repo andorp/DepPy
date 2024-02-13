@@ -48,12 +48,11 @@ class Cons(Vector) :
 
 # Examples
 
-vector = Vector(0,Nat) # Example of the type
-empty = Nil(int)       # Example of the empty vector
-cons = Cons(1,empty)   # Example of the singleton vector
-
-print(empty)
-print(cons)
+# vector = Vector(0,Nat) # Example of the type
+# empty = Nil(int)       # Example of the empty vector
+# cons = Cons(1,empty)   # Example of the singleton vector
+# print(empty)
+# print(cons)
 
 # Example of a double length storage
 class DoubleLength :

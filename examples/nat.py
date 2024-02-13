@@ -75,30 +75,49 @@ class Succ (Nat) :
         else:
             return False
 
-# Eliminator(?) of the natural numbers
+def fromInt(t:int) -> Nat:
+    if (t == 0):
+        return Zero()
+    else:
+        return Succ(fromInt(t-1))
+
+# Fold of natural numbers.
 # Visitor pattern for Nats (Foldable+Traversable)
-class NatElim [T] :
-    # TODO: replace T
-    def zero(self)     -> T : pass
-    def succ(self,t:T) -> T : pass
+class NatFold:
+    def __init__(self,t:type):
+        self.T = t
+        pass
+
+    def zero(self)  : pass
+    def succ(self,x): pass
     pass
 
-def natElim(k:Nat,elim:NatElim):
+def natFold(k:Nat,elim:NatFold):
     # TODO: Tail recursion?
     if isinstance(k,Zero):
-        elim.zero()
+        x = elim.zero()
+        check(x,elim.T)
+        return x
     elif isinstance(k,Succ):
-        elim.succ(natElim(k.n))
+        x = elim.succ(natFold(k.n,elim))
+        check(x,elim.T)
+        return x
     else:
-        raise TypeError("natElim: parameter not of type Nat")
+        raise TypeError("natFold: parameter not of type Nat")
+
+# Eliminator for the natural number
+#
+# Elim : (P : Nat -> Type) -> (z : P Zero) -> (s : P m -> P (Succ m)) -> n -> P n
+class NatElim:
+    pass
+    
 
 """
 Nat = Zero () | Succ (n : Nat)
 """
         
-# Examples
-        
-nat = Nat()               # Example of te type Nat
-two = Succ(Succ(Zero()))  # Example of the value 2
-three = Succ(two)         # Example of the value 3
-print(two.add(three))
+# Examples      
+# nat = Nat()               # Example of te type Nat
+# two = Succ(Succ(Zero()))  # Example of the value 2
+# three = Succ(two)         # Example of the value 3
+# print(two.add(three))
