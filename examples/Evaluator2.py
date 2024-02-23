@@ -77,7 +77,8 @@ class Dot (Expr) :
                 try : 
                     return theclass.methods[self.f]
                 except KeyError :
-                 theclass = theclass.super
+                 theclass = theclass.super 
+                 # refactor using class objects only, super is an instance variable
         
 class Apply(Expr) :
     def __init__(self,e,args) :
@@ -96,7 +97,7 @@ class Object :
 class Instance (Object) :
       
     def __init__(self,myclass,state) :
-        # myclass : Class
+        # myclass : Class # or Object
         # state : Dict (String , Object)
         self.myclass = myclass
         self.state = state
@@ -104,7 +105,8 @@ class Instance (Object) :
     def apply(self,objs) :
         # self.class = MetaClass
         return Instance(self.theclass,dict(zip(self.theclass.init.params,objs)))
-        
+     
+        # introduce class objects
     
 class Closure( Object) :
     
