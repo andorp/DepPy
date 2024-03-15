@@ -92,8 +92,15 @@ class Dot (Expr) :
         obj = self.e.eval(env)
         try :
           return obj.state[self.f]
-        except KeyError :
-          return Closure(obj.myclass.state["methods"][self.f],obj)
+        except KeyError : 
+            theclass = obj.myclass
+            while True :
+             try : 
+                return Closure(theclass.state["methods"][self.f],obj)
+             except KeyError :
+                theclass = theclass.state["super"] 
+            
+#          return Closure(obj.myclass.state["methods"][self.f],obj)
         """
         try :
             return self.e.eval(env).state[self.f]
@@ -177,20 +184,21 @@ class Closure(Object) :
     # myclass.methods
 """
 
-"""
+# example
 class Nat : # abstract: no __init__!
  
     pass
-"""
+# end example
 
 # need to write an evaluator for classes
 
 env = {}
 
-env["Nat"] = Object.mkClass(Object.objectClass(),[],[]) #Instance(MetaClass(Nat),{}) # refactor 
+#env["Nat"] = Object.mkClass(Object.objectClass(),[],[]) #Instance(MetaClass(Nat),{}) # refactor 
+env["Nat"] = Object.mkClass(Object.objectClass(),Init([]),{}) #Instance(MetaClass(Nat),{}) # refactor 
 
 
-"""
+# example
 class Zero (Nat) : 
 
     def __init__(self) :
@@ -198,13 +206,13 @@ class Zero (Nat) :
 
     def add(self,m) :
         return m
-"""
+# end example
 
 
 env["Zero"] = Object.mkClass(env["Nat"],Init([]),
                      {"add": Method(["self","m"],Id("m"))})
 
-"""
+# example
 class Succ (Nat) : 
 
     def __init__(self,n) : 
@@ -213,7 +221,7 @@ class Succ (Nat) :
     def add(self,m) : 
         return Succ(self.n.add(m))
         
-"""
+# end example
 
 env["Succ"] =  Object.mkClass(env["Nat"],
                    Init(["n"]),
@@ -221,16 +229,48 @@ env["Succ"] =  Object.mkClass(env["Nat"],
                         Apply(Id("Succ"),
                               [Apply(Dot(Dot(Id("self"),"n"),"add"),[Id("m")])]))})
 
-# zero = Zero()    
+zero = Zero() # example    
 env["zero"] = Apply(Id("Zero"),[]).eval(env) 
 
-tst = Apply(Dot(Id("zero"),"add"),[Id("zero")]).eval(env) 
-             
-# one = Succ(zero)                           
+tst = zero.add(zero)
+env["tst"] = Apply(Dot(Id("zero"),"add"),[Id("zero")]).eval(env) 
+
+
+one = Succ(zero) # example                           
 env["one"] = Apply(Id("Succ"),[Id("zero")]).eval(env) 
 
-# one.add(one)
+two = one.add(one) # example
 env["two"] = Apply(Dot(Id("one"),"add"),[Id("one")]).eval(env) 
 
+
+#example
+class A :
+
+    def mm (self) :
+        return zero
     
+class B (A) :
+    
+    pass
+
+tst2 = B().mm()
+# end example
+
+
+
+env["A"] = Object.mkClass(Object.objectClass(),Init([]),
+                     {"mm": Method(["self"],Id("zero"))})
+
+env["a"] = Apply(Id("A"),[]).eval(env)
+
+env["tst2"] = Apply(Dot(Id("a"),"mm"),[]).eval(env)
+
+
+env["B"] = Object.mkClass(env["A"],Init([]),{})
+
+env["b"] = Apply(Id("B"),[]).eval(env)
+ 
+env["tst3"] = Apply(Dot(Id("b"),"mm"),[]).eval(env)
+
+
     
