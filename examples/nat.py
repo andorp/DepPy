@@ -115,7 +115,13 @@ class NatElim:
 """
 Nat = Zero () | Succ (n : Nat)
 """
-        
+   
+def num(i) :
+    if i<=0 :
+        return Zero()
+    else :
+        return Succ(num(i-1))
+
 # Examples      
 # nat = Nat()               # Example of te type Nat
 # two = Succ(Succ(Zero()))  # Example of the value 2

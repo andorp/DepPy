@@ -33,6 +33,10 @@ class Init :
     def __init__(self,params) :
         # instVars : List(String)
         self.params = params
+        
+    def __repr__(self) :
+        return f"Init({self.params})"
+        
     
 class Method : 
     def __init__(self,params,ret) :
@@ -46,6 +50,21 @@ class Method :
         localenv = env.copy()
         localenv.update(dict(zip(self.params,objs)))
         return self.ret.eval(localenv)
+    
+    def __repr__(self) :
+        return f"Method({self.params},{self.ret})"
+
+class Closure :
+    def __init__(self,method,myself) :
+        self.method = method
+        self.myself = myself
+        
+    def apply(self,objs,env) :
+        # objs : List Object
+        localenv = env.copy()
+        localenv.update(dict(zip(self.method.params,[self.myself]+list(objs))))
+        return self.method.ret.eval(localenv)
+    
        
 class Expr :
     pass
@@ -57,6 +76,9 @@ class Id (Expr) :
 
     def eval(self,env) :
         return env[self.name]
+    
+    def __repr__(self) :
+        return f"Id({self.name})"
             
 class Dot (Expr) :
     def __init__(self,e,f) :
@@ -71,7 +93,7 @@ class Dot (Expr) :
         try :
           return obj.state[self.f]
         except KeyError :
-          return obj.myclass.state["methods"][self.f]
+          return Closure(obj.myclass.state["methods"][self.f],obj)
         """
         try :
             return self.e.eval(env).state[self.f]
@@ -85,6 +107,12 @@ class Dot (Expr) :
                  theclass = theclass["super"] 
                  # refactor using class objects only, super is an instance variable
         """
+        
+    def __repr__(self) :
+        return f"Dot({self.e},{self.f})"
+ 
+" zero.add" 
+           
 class Apply(Expr) :
     def __init__(self,e,args) :
         # e : Expr
@@ -95,6 +123,10 @@ class Apply(Expr) :
     def eval(self,env) :
         return self.e.eval(env).apply(map(lambda x:x.eval(env),self.args),env)     
 #       self.e.eval(env).apply(map(lambda x:x.eval(env),self.args))     
+
+    def __repr__(self) :
+        return f"Apply({self.e},{self.args})"
+
                      
 
 class Object :
@@ -130,7 +162,7 @@ class Instance (Object) :
     def __repr__(self) :
         return f"Instance({self.myclass},{self.state})"
     
-  
+"""
 class Closure(Object) :
     
     def __init__(self,body) :
@@ -143,6 +175,7 @@ class Closure(Object) :
         
 
     # myclass.methods
+"""
 
 """
 class Nat : # abstract: no __init__!
@@ -167,6 +200,7 @@ class Zero (Nat) :
         return m
 """
 
+
 env["Zero"] = Object.mkClass(env["Nat"],Init([]),
                      {"add": Method(["self","m"],Id("m"))})
 
@@ -185,18 +219,18 @@ env["Succ"] =  Object.mkClass(env["Nat"],
                    Init(["n"]),
                      {"add":Method(["self","m"],
                         Apply(Id("Succ"),
-                              [Apply(Dot(Dot(Id("self"),"n"),"m"),[Id("m")])]))})
+                              [Apply(Dot(Dot(Id("self"),"n"),"add"),[Id("m")])]))})
 
 # zero = Zero()    
 env["zero"] = Apply(Id("Zero"),[]).eval(env) 
 
 tst = Apply(Dot(Id("zero"),"add"),[Id("zero")]).eval(env) 
-"""              
+             
 # one = Succ(zero)                           
 env["one"] = Apply(Id("Succ"),[Id("zero")]).eval(env) 
 
 # one.add(one)
 env["two"] = Apply(Dot(Id("one"),"add"),[Id("one")]).eval(env) 
-"""
+
     
     
