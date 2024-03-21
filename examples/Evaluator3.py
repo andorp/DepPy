@@ -273,4 +273,68 @@ env["b"] = Apply(Id("B"),[]).eval(env)
 env["tst3"] = Apply(Dot(Id("b"),"mm"),[]).eval(env)
 
 
+# example
+# Heterogenous vector
+class Vector :
+    # n : Nat
+    pass
+
+class VNil (Vector) :
+    def __init__(self):
+        # self.n = Zero
+        pass
+
+    # append(ys) : Vector
+    # append(ys).n = ys.n
+    def append(self,ys):
+        # ys : Vector
+        return ys
+
+class VCons (Vector) :
     
+    def __init__(self,x,xs):
+        # xs : Vector
+        # self.n = Succ(xs.n)
+        self.x  = x
+        self.xs = xs
+
+    # append(ys) : Vector
+    # append(ys).n = self.xs.n.add(ys.n)
+    def append(self,ys):
+        # ys : Vector
+        return VCons(self.x,self.xs.append(ys))
+# end example
+
+env["Vector"] = Object.mkClass(
+    supper=Object.objectClass(),
+    inits=Init([]),
+    methods={}
+)
+
+env["VNil"] = Object.mkClass(
+    supper=env["Vector"],
+    inits=Init([]), # TODO: Add init code
+    methods=
+      { "append": Method(
+            params=["self","ys"],
+            ret=Id("ys")
+          )
+      }
+)
+
+env["VCons"] = Object.mkClass(
+    supper=env["Vector"],
+    inits=Init(["x","xs"]),
+    methods=
+      { "append": Method(
+            params=["self","ys"],
+            ret=Apply(
+                Id("VCons"),
+                [ Dot(Id("self"),Id("x"))
+                , Apply(
+                    Dot(Dot(Id("self"),Id("xs")),Id("append")),
+                    [Id("ys")])
+                ])
+          )
+      }
+)
