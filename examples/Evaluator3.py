@@ -169,21 +169,6 @@ class Instance (Object) :
     def __repr__(self) :
         return f"Instance({self.myclass},{self.state})"
     
-"""
-class Closure(Object) :
-    
-    def __init__(self,body) :
-        # body : Method
-        self.body = body
-
-    def apply(self,objs,env) :
-        # objs : List Object
-        return self.body.apply(objs,env)
-        
-
-    # myclass.methods
-"""
-
 # example
 class Nat : # abstract: no __init__!
  
@@ -195,7 +180,11 @@ class Nat : # abstract: no __init__!
 env = {}
 
 #env["Nat"] = Object.mkClass(Object.objectClass(),[],[]) #Instance(MetaClass(Nat),{}) # refactor 
-env["Nat"] = Object.mkClass(Object.objectClass(),Init([]),{}) #Instance(MetaClass(Nat),{}) # refactor 
+env["Nat"] = Object.mkClass(
+    supper=Object.objectClass(),
+    inits=Init([]),
+    methods={}
+) #Instance(MetaClass(Nat),{}) # refactor 
 
 
 # example
@@ -209,8 +198,12 @@ class Zero (Nat) :
 # end example
 
 
-env["Zero"] = Object.mkClass(env["Nat"],Init([]),
-                     {"add": Method(["self","m"],Id("m"))})
+env["Zero"] = Object.mkClass(
+    supper=env["Nat"],
+    inits=Init([]), # TODO: Add init code
+    methods=
+      { "add": Method(["self","m"],Id("m"))}
+)
 
 # example
 class Succ (Nat) : 
@@ -223,11 +216,20 @@ class Succ (Nat) :
         
 # end example
 
-env["Succ"] =  Object.mkClass(env["Nat"],
-                   Init(["n"]),
-                     {"add":Method(["self","m"],
-                        Apply(Id("Succ"),
-                              [Apply(Dot(Dot(Id("self"),"n"),"add"),[Id("m")])]))})
+env["Succ"] =  Object.mkClass(
+    suppter=env["Nat"],
+    inits=Init(["n"]),
+    methods={
+        "add": Method(
+            params=["self","m"],
+            ret=Apply(
+                Id("Succ"),
+                [ Apply(Dot(Dot(Id("self"),"n"),"add"),[Id("m")])
+                ]
+            )
+        )
+    }
+)
 
 zero = Zero() # example    
 env["zero"] = Apply(Id("Zero"),[]).eval(env) 
@@ -255,8 +257,6 @@ class B (A) :
 
 tst2 = B().mm()
 # end example
-
-
 
 env["A"] = Object.mkClass(Object.objectClass(),Init([]),
                      {"mm": Method(["self"],Id("zero"))})
