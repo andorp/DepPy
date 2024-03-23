@@ -339,14 +339,15 @@ env["VCons"] = Object.mkClass(
             params=["self","ys"],
             ret=Apply(
                 Id("VCons"),
-                [ Dot(Id("self"),Id("x"))
+                [ Dot(Id("self"),"x")
                 , Apply(
-                    Dot(Dot(Id("self"),Id("xs")),Id("append")),
+                    Dot(Dot(Id("self"),"xs"),"append"),
                     [Id("ys")])
                 ])
           )
       }
 )
+
 env['v0'] = Apply(Id("VNil"),[]).eval(env)
 env['v1'] = Apply(Id("VCons"),[Id("one"),Id("v0")]).eval(env)
 env['v2'] = Apply(Dot(Id("v1"),"append"),[Id("v1")]).eval(env)
