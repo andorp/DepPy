@@ -282,7 +282,7 @@ env["tst3"] = Apply(Dot(Id("b"),"mm"),[]).eval(env)
 # example
 # Heterogenous vector
 class Vector :
-    # n : Nat
+    # self.n : Nat
     pass
 
 class VNil (Vector) :
@@ -352,3 +352,46 @@ env['v0'] = Apply(Id("VNil"),[]).eval(env)
 env['v1'] = Apply(Id("VCons"),[Id("one"),Id("v0")]).eval(env)
 env['v2'] = Apply(Dot(Id("v1"),"append"),[Id("v1")]).eval(env)
 # print(env["two"])
+
+# example
+class Fin :
+    # n : Nat
+    pass
+
+class FZero :
+    def __init__(self) :
+        # self.n = Succ(Zero)
+        pass
+
+class FSucc :
+    
+    def __init__(self,f) :
+        # f : Fin
+        # self.n = Succ(f.n)
+        self.f = f
+# end example
+
+env['Fin'] = Object.mkClass(
+    name="Fin",
+    supper=Object.objectClass(),
+    inits=Init([]),
+    methods={}
+)
+
+env['FZero'] = Object.mkClass(
+    name="FZero",
+    supper=env['Fin'],
+    inits=Init([]),
+    methods={}
+)
+
+env['FSucc'] = Object.mkClass(
+    name="FSucc",
+    supper=env['Fin'],
+    inits=Init(["f"]),
+    methods={}
+)
+
+env['f0'] = Apply(Id("FZero"),[]).eval(env)
+env['f1'] = Apply(Id("FSucc"),[Id("f0")]).eval(env)
+env['f2'] = Apply(Id("FSucc"),[Id("f1")]).eval(env)
