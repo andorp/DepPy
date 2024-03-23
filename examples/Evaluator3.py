@@ -137,9 +137,11 @@ class Apply(Expr) :
                      
 
 class Object :
+    
     # myClass : Object
-    def mkClass(supper,inits,methods) :
-        return Instance(MetaClass(),{"super" : supper,"inits" : inits,"methods" : methods})
+    def mkClass(name,supper,inits,methods) :
+        # Name is only for debugging
+        return Instance(MetaClass(),{"name":name,"super":supper,"inits":inits,"methods":methods})
       
     def objectClass() :
         return Instance(MetaClass(),{})
@@ -167,7 +169,8 @@ class Instance (Object) :
         #return Instance(self.theclass,dict(zip(self.theclass.init.params,objs)))
         
     def __repr__(self) :
-        return f"Instance({self.myclass},{self.state})"
+        # return f"Instance(myclass={self.myclass},state={self.state})"
+        return f"Instance({self.myclass.state.get("name","???")},state={self.state})"
     
 # example
 class Nat : # abstract: no __init__!
@@ -181,6 +184,7 @@ env = {}
 
 #env["Nat"] = Object.mkClass(Object.objectClass(),[],[]) #Instance(MetaClass(Nat),{}) # refactor 
 env["Nat"] = Object.mkClass(
+    name="Nat",
     supper=Object.objectClass(),
     inits=Init([]),
     methods={}
@@ -199,6 +203,7 @@ class Zero (Nat) :
 
 
 env["Zero"] = Object.mkClass(
+    name="Zero",
     supper=env["Nat"],
     inits=Init([]), # TODO: Add init code
     methods=
@@ -217,7 +222,8 @@ class Succ (Nat) :
 # end example
 
 env["Succ"] =  Object.mkClass(
-    suppter=env["Nat"],
+    name="Succ",
+    supper=env["Nat"],
     inits=Init(["n"]),
     methods={
         "add": Method(
@@ -258,7 +264,7 @@ class B (A) :
 tst2 = B().mm()
 # end example
 
-env["A"] = Object.mkClass(Object.objectClass(),Init([]),
+env["A"] = Object.mkClass("A",Object.objectClass(),Init([]),
                      {"mm": Method(["self"],Id("zero"))})
 
 env["a"] = Apply(Id("A"),[]).eval(env)
@@ -266,7 +272,7 @@ env["a"] = Apply(Id("A"),[]).eval(env)
 env["tst2"] = Apply(Dot(Id("a"),"mm"),[]).eval(env)
 
 
-env["B"] = Object.mkClass(env["A"],Init([]),{})
+env["B"] = Object.mkClass("B",env["A"],Init([]),{})
 
 env["b"] = Apply(Id("B"),[]).eval(env)
  
@@ -306,12 +312,14 @@ class VCons (Vector) :
 # end example
 
 env["Vector"] = Object.mkClass(
+    name="Vector",
     supper=Object.objectClass(),
     inits=Init([]),
     methods={}
 )
 
 env["VNil"] = Object.mkClass(
+    name="VNil",
     supper=env["Vector"],
     inits=Init([]), # TODO: Add init code
     methods=
@@ -323,6 +331,7 @@ env["VNil"] = Object.mkClass(
 )
 
 env["VCons"] = Object.mkClass(
+    name="VCons",
     supper=env["Vector"],
     inits=Init(["x","xs"]),
     methods=
@@ -338,3 +347,7 @@ env["VCons"] = Object.mkClass(
           )
       }
 )
+env['v0'] = Apply(Id("VNil"),[]).eval(env)
+env['v1'] = Apply(Id("VCons"),[Id("one"),Id("v0")]).eval(env)
+env['v2'] = Apply(Dot(Id("v1"),"append"),[Id("v1")]).eval(env)
+# print(env["two"])
