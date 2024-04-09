@@ -296,6 +296,9 @@ class VNil (Vector) :
         # ys : Vector
         return ys
 
+    def elim(self,e):
+        return e.VNil(self)
+
 class VCons (Vector) :
     
     def __init__(self,x,xs):
@@ -309,6 +312,15 @@ class VCons (Vector) :
     def append(self,ys):
         # ys : Vector
         return VCons(self.x,self.xs.append(ys))
+    
+    def elim(self,e):
+        return e.VCons(self)
+    
+class VElim :
+    def VNil(self,e:VNil):
+        pass
+    def VCons(self,e:VCons):
+        pass
 # end example
 
 env["Vector"] = Object.mkClass(
@@ -360,8 +372,13 @@ class Fin :
 
 class FZero :
     def __init__(self) :
-        # self.n = Succ(Zero)
+        # m : Nat
+        # Field = expression
+        # self.n = Succ(m)
         pass
+
+    def elim(self,e):
+        return e.FZero(self)
 
 class FSucc :
     
@@ -369,6 +386,16 @@ class FSucc :
         # f : Fin
         # self.n = Succ(f.n)
         self.f = f
+
+    def elim(self,e):
+        return e.FSucc(self)
+
+class FinElim :
+    def FZero(self,e:FZero):
+        pass
+    def FSucc(self,e:FSucc):
+        pass
+
 # end example
 
 env['Fin'] = Object.mkClass(
