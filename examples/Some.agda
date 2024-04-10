@@ -69,8 +69,8 @@ finInd :
   (f : Fin n)                                        ->
   -----------------------------------------------------
   P f
-finElim2 P z s FZero     = z
-finElim2 P z s (FSucc f) = s (finElim2 P z s f)
+finInd P z s FZero     = z
+finInd P z s (FSucc f) = s (finInd P z s f)
 
 data Vect (A : Set) : Nat -> Set where
   VNil  : Vect A Zero
