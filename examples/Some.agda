@@ -14,7 +14,7 @@ natFold :
 natFold z s Zero     = z
 natFold z s (Succ n) = s (natFold z s n)
 
-natElim :
+natInd :
   (P : Nat -> Set)                     ->
   (z : P Zero)                         ->
   (s : {k : Nat} -> P k -> P (Succ k)) ->
@@ -27,6 +27,24 @@ natElim P z s (Succ n) = s (natElim P z s n)
 data List (A : Set) : Set where
   Nil  : List A
   Cons : A -> List A -> List A
+
+listFold :
+  {A B : Set}         ->
+  (n   : B)           ->
+  (c   : A -> B -> B) ->
+  (xs  : List A)      ->
+  ----------------------
+  B
+listFold n c Nil         = n
+listFold n c (Cons x xs) = c x (listFold n c xs)
+
+lookuple :
+  {A  : Set}    ->
+  (n  : Nat)    ->
+  (xs : List A) ->
+  ----------------
+  A
+lookuple = {!   !}
 
 data Fin : Nat -> Set where
   FZero : {n : Nat} -> Fin (Succ n)
@@ -43,24 +61,13 @@ finFold :
 finFold         z s FZero          = z
 finFold {A} {n} z s (FSucc {n1} f) = s (finFold z s f)
 
-finElim :
-  {n : Nat}                            ->
-  (P : Nat -> Set)                     ->
-  (z : {k : Nat} -> P (Succ k))        ->
-  (s : {k : Nat} -> P k -> P (Succ k)) ->
-  (f : Fin n)                          ->
-  ---------------------------------------
-  P n
-finElim P z s FZero     = z
-finElim P z s (FSucc f) = s (finElim P z s f)
-
-finElim2 :
-  {n : Nat}                                            ->
-  (P : {k : Nat} -> Fin k -> Set)                      ->
-  (z : {k : Nat} -> P (FZero {k}))                     ->
-  (s : {k : Nat} -> {f : Fin k} -> P f -> P (FSucc f)) ->
-  (f : Fin n)                                          ->
-  -------------------------------------------------------
+finInd :
+  {n : Nat}                                          ->
+  (P : forall {k} -> Fin k -> Set)                   ->
+  (z : forall {k} -> P (FZero {k}))                  ->
+  (s : forall {k} {f : Fin k} -> P f -> P (FSucc f)) ->
+  (f : Fin n)                                        ->
+  -----------------------------------------------------
   P f
 finElim2 P z s FZero     = z
 finElim2 P z s (FSucc f) = s (finElim2 P z s f)
@@ -80,31 +87,19 @@ vectFold :
 vectFold z s VNil = z
 vectFold z s (VCons x xs) = s x (vectFold z s xs)
 
-vectElim :
-  {A B : Set} ->
-  {n   : Nat} ->
-  (P   : Set -> Nat -> Set) ->
-  (z   : P A Zero) ->
-  (s   : {k : Nat} -> P A k -> P A (Succ k)) ->
-  (xs  : Vect A n) ->
-  P A n
-vectElim P z s VNil         = z
-vectElim P z s (VCons x xs) = s (vectElim P z s xs)
-
-vectElim2 :
-  {A : Set}                                         ->
-  {n : Nat}                                         ->
-  (P : {A0 : Set} -> {k : Nat} -> Vect A0 k -> Set) ->
-  (z : {A0 : Set} -> P {A0} VNil)                   ->
-  (s : {A0 : Set} -> 
-       {k : Nat}  ->
-       {x : A0}   ->
-       {xs : Vect A0 k} -> P xs -> P (VCons x xs))  ->
-  (xs : Vect A n)                                   ->
-  ------------------
+vectInd :
+  {A : Set}                                   ->
+  {n : Nat}                                   ->
+  (P : forall {B} {k} (ys : Vect B k) -> Set) ->
+  (z : forall {B} -> P {B} VNil)              ->
+  (s : forall {B} {k} {x} {xs : Vect B k}
+       -> P xs
+       -> P (VCons x xs))                     ->
+  (xs : Vect A n)                             ->
+  ----------------------------------------------
   P xs
-vectElim2 P z s VNil         = z
-vectElim2 P z s (VCons x xs) = s (vectElim2 P z s xs)
+vectInd P z s VNil         = z
+vectInd P z s (VCons x xs) = s (vectInd P z s xs)
 
 lookup0 :
   {A   : Set}      ->
