@@ -381,7 +381,6 @@ class FZero :
         return e.FZero(self)
 
 class FSucc :
-    
     def __init__(self,f) :
         # f : Fin
         # self.n = Succ(f.n)
@@ -422,3 +421,29 @@ env['FSucc'] = Object.mkClass(
 env['f0'] = Apply(Id("FZero"),[]).eval(env)
 env['f1'] = Apply(Id("FSucc"),[Id("f0")]).eval(env)
 env['f2'] = Apply(Id("FSucc"),[Id("f1")]).eval(env)
+
+# TODO: show constraints
+"""
+Lookup an element from a vector vect indexed by idx.
+"""
+def lookup1(idx:Fin,vect:Vector) :
+    # idx.n  : Nat
+    # vect.n : Nat
+    # idx.n = vect.n
+    match (idx,vect) :
+        case (FZero(),VNil()) :
+            # idx.n  = Succ(m)
+            # vect.n = Zero
+            raise TypeError("Impossible TODO Explain")
+        case (FZero(),VCons(x=y,xs=ys)) :
+            # idx.n  = Succ(m)
+            # vect.n = Succ(k)
+            return y
+        case (FSucc(f=a),VNil()) :
+            # idx.n  = Succ(m)
+            # vect.n = Zero
+            raise TypeError("Impossible TODO Explain")
+        case (FSucc(f=a),VCons(x=y,xs=ys)) :
+            # idx.n  = Succ(m)
+            # vect.n = Succ(k)
+            return lookup1(a,ys)
