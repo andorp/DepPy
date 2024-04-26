@@ -169,8 +169,8 @@ class Instance (Object) :
         #return Instance(self.theclass,dict(zip(self.theclass.init.params,objs)))
         
     def __repr__(self) :
-        # return f"Instance(myclass={self.myclass},state={self.state})"
-        return f"Instance({self.myclass.state.get("name","???")},state={self.state})"
+        return f"Instance(myclass={self.myclass},state={self.state})"
+#        return f"Instance({self.myclass.state.get("name","???")},state={self.state})"
     
 # example
 class Nat : # abstract: no __init__!
@@ -278,97 +278,14 @@ env["b"] = Apply(Id("B"),[]).eval(env)
  
 env["tst3"] = Apply(Dot(Id("b"),"mm"),[]).eval(env)
 
-
-# example
-# Heterogenous vector
-class Vector :
-    # self.n : Nat
-    pass
-
-class VNil (Vector) :
-    def __init__(self):
-        # self.n = Zero
-        pass
-
-    # append(ys) : Vector
-    # append(ys).n = ys.n
-    def append(self,ys):
-        # ys : Vector
-        return ys
-
-    def elim(self,e):
-        return e.VNil(self)
-
-class VCons (Vector) :
-    
-    def __init__(self,x,xs):
-        # xs : Vector
-        # self.n = Succ(xs.n)
-        self.x  = x
-        self.xs = xs
-
-    # append(ys) : Vector
-    # append(ys).n = self.xs.n.add(ys.n)
-    def append(self,ys):
-        # ys : Vector
-        return VCons(self.x,self.xs.append(ys))
-    
-    def elim(self,e):
-        return e.VCons(self)
-    
-class VElim :
-    def VNil(self,e:VNil):
-        pass
-    def VCons(self,e:VCons):
-        pass
-# end example
-
-env["Vector"] = Object.mkClass(
-    name="Vector",
-    supper=Object.objectClass(),
-    inits=Init([]),
-    methods={}
-)
-
-env["VNil"] = Object.mkClass(
-    name="VNil",
-    supper=env["Vector"],
-    inits=Init([]), # TODO: Add init code
-    methods=
-      { "append": Method(
-            params=["self","ys"],
-            ret=Id("ys")
-          )
-      }
-)
-
-env["VCons"] = Object.mkClass(
-    name="VCons",
-    supper=env["Vector"],
-    inits=Init(["x","xs"]),
-    methods=
-      { "append": Method(
-            params=["self","ys"],
-            ret=Apply(
-                Id("VCons"),
-                [ Dot(Id("self"),"x")
-                , Apply(
-                    Dot(Dot(Id("self"),"xs"),"append"),
-                    [Id("ys")])
-                ])
-          )
-      }
-)
-
-env['v0'] = Apply(Id("VNil"),[]).eval(env)
-env['v1'] = Apply(Id("VCons"),[Id("one"),Id("v0")]).eval(env)
-env['v2'] = Apply(Dot(Id("v1"),"append"),[Id("v1")]).eval(env)
-# print(env["two"])
-
 # example
 class Fin :
     # n : Nat
+    # lookupNil [.self.n = Zero] : Any 
+    # lookupCons (v : VCons [n = self.n]) : Any 
     pass
+
+    
 
 class FZero :
     def __init__(self) :
@@ -376,6 +293,12 @@ class FZero :
         # Field = expression
         # self.n = Succ(m)
         pass
+
+    def lookupNil(self) :
+        raise TypeError("Impossible TODO Explain")
+
+    def lookupCons(self,v) :
+        return v.x
 
     def elim(self,e):
         return e.FZero(self)
@@ -385,6 +308,12 @@ class FSucc :
         # f : Fin
         # self.n = Succ(f.n)
         self.f = f
+        
+    def lookupNil(self) :
+        raise TypeError("Impossible TODO Explain")
+
+    def lookupCons(self,v) :
+        return v.xs.lookup(self.f)
 
     def elim(self,e):
         return e.FSucc(self)
@@ -422,9 +351,115 @@ env['f0'] = Apply(Id("FZero"),[]).eval(env)
 env['f1'] = Apply(Id("FSucc"),[Id("f0")]).eval(env)
 env['f2'] = Apply(Id("FSucc"),[Id("f1")]).eval(env)
 
+# example
+# Heterogenous vector
+class Vector :
+    # self.n : Nat
+    pass
+
+    # append(ys : Vector) : Vector [.n = self.n.add(ys.n)]
+
+    # lookup(i : Fin [.n = self.n]) : Any
+
+class VNil (Vector) :
+    def __init__(self):
+        # self.n = Zero
+        pass
+
+    # append(ys) : Vector
+    # append(ys).n = ys.n
+    def append(self,ys):
+        # ys : Vector
+        return ys
+        # CHECK ys.n = self.n.add(ys.n) 
+        #            = zero.add(ys.n) = ys.n
+
+    def lookup(self,i) :
+        return i.lookupNil()
+
+    def elim(self,e):
+        return e.VNil(self)
+
+class VCons (Vector) :
+    
+    def __init__(self,x,xs):
+        # xs : Vector
+        # self.n = Succ(xs.n)
+        self.x  = x
+        self.xs = xs
+
+    # append(ys) : Vector
+    # append(ys).n = self.xs.n.add(ys.n)
+    def append(self,ys):
+        # ys : Vector
+        return VCons(self.x,self.xs.append(ys))
+        # CHECK VCons(self.x,self.xs.append(ys)).n = self.n.add(ys.n)]
+        # VCons(self.x,self.xs.append(ys)).n 
+        # = Succ(self.xs.append(ys).n)
+        # = Succ(xs.n.add(ys.n))
+        # self.n.add(ys.n) = Succ(xs.n).add(ys.n)
+        # = Succ(xs.n.add(ys.n))
+    
+    def lookup(self,i) :
+        return i.lookupCons(self)
+    
+    def elim(self,e):
+        return e.VCons(self)
+    
+class VElim :
+    def VNil(self,e:VNil):
+        pass
+    def VCons(self,e:VCons):
+        pass
+# end example
+
+env["Vector"] = Object.mkClass(
+    name="Vector",
+    supper=Object.objectClass(),
+    inits=Init([]),
+    methods={}
+)
+
+env["VNil"] = Object.mkClass(
+    name="VNil",
+    supper=env["Vector"],
+    inits=Init([]), 
+    methods=
+      { "append": Method(
+            params=["self","ys"],
+            ret=Id("ys")
+          )
+      }
+)
+
+env["VCons"] = Object.mkClass(
+    name="VCons",
+    supper=env["Vector"],
+    inits=Init(["x","xs"]),
+    methods=
+      { "append": Method(
+            params=["self","ys"],
+            ret=Apply(
+                Id("VCons"),
+                [ Dot(Id("self"),"x")
+                , Apply(
+                    Dot(Dot(Id("self"),"xs"),"append"),
+                    [Id("ys")])
+                ])
+          )
+      }
+)
+
+env['v0'] = Apply(Id("VNil"),[]).eval(env)
+env['v1'] = Apply(Id("VCons"),[Id("one"),Id("v0")]).eval(env)
+env['v2'] = Apply(Dot(Id("v1"),"append"),[Id("v1")]).eval(env)
+# print(env["v2"])
+
+
 # TODO: show constraints
 """
 Lookup an element from a vector vect indexed by idx.
+"""
 """
 def lookup1(idx:Fin,vect:Vector) :
     # idx.n  : Nat
@@ -447,3 +482,4 @@ def lookup1(idx:Fin,vect:Vector) :
             # idx.n  = Succ(m)
             # vect.n = Succ(k)
             return lookup1(a,ys)
+"""

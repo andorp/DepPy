@@ -14,7 +14,7 @@ natFold :
 natFold z s Zero     = z
 natFold z s (Succ n) = s (natFold z s n)
 
-natInd :
+natElim :
   (P : Nat -> Set)                     ->
   (z : P Zero)                         ->
   (s : {k : Nat} -> P k -> P (Succ k)) ->
@@ -111,10 +111,11 @@ lookup0 :
 lookup0 FZero       (VCons x xs) = x 
 lookup0 (FSucc idx) (VCons x xs) = lookup0 idx xs
 
-lookup1 :
+lookup1-vec :
   {A   : Set}      ->
   {n   : Nat}      ->
   (idx : Fin n)    ->
   (xs  : Vect A n) ->
   A  
-lookup1 idx xs = {!   !}
+lookup1-vec idx (VCons x xs) = ?
+
