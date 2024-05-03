@@ -30,14 +30,15 @@ class ObjectClass (Class) :
 """
 
 class Init :
-    def __init__(self,params) :
-        # instVars : List(String)
-        self.params = params
+    def __init__(self,constraints,params) :
+        # constraints : List(Constraint)
+        # params      : List(String)
+        self.params      = params
+        self.constraints = constraints
         
     def __repr__(self) :
-        return f"Init({self.params})"
-        
-    
+        return f"Init({self.constraints},{self.params})"
+      
 class Method : 
     def __init__(self,params,ret) :
         # params : List String
@@ -69,6 +70,32 @@ class Closure :
 class Expr :
     pass
     # eval (self : Expr , env : Dict (String , Object))
+
+class Var (Expr) :
+    """Evaluation meta variable"""
+    def __init__(self,name) :
+        # name : String
+        self.name = name
+
+    def eval(self,env) :
+        return self
+
+    def __repr__(self) :
+        return f"Var({self.name})"
+
+class Constraint (Expr) :
+    def __init__(self,var,e) :
+        # name : String
+        # e    : Expr
+        self.var = var
+        self.e   = e
+
+    def eval(self,env) :
+        return self
+
+    def __repr__(self) :
+        return f"Constraint({self.name},{self.e})"
+
 class Id (Expr) :
     def __init__(self,name) :
         # name : String
@@ -186,7 +213,7 @@ env = {}
 env["Nat"] = Object.mkClass(
     name="Nat",
     supper=Object.objectClass(),
-    inits=Init([]),
+    inits=Init(constraints=[],params=[]),
     methods={}
 ) #Instance(MetaClass(Nat),{}) # refactor 
 
@@ -201,13 +228,13 @@ class Zero (Nat) :
         return m
 # end example
 
-
 env["Zero"] = Object.mkClass(
     name="Zero",
     supper=env["Nat"],
-    inits=Init([]), # TODO: Add init code
-    methods=
-      { "add": Method(["self","m"],Id("m"))}
+    inits=Init(constraints=[],params=[]),
+    methods={
+        "add": Method(["self","m"],Id("m"))
+    }
 )
 
 # example
@@ -224,7 +251,7 @@ class Succ (Nat) :
 env["Succ"] =  Object.mkClass(
     name="Succ",
     supper=env["Nat"],
-    inits=Init(["n"]),
+    inits=Init(constraints=[],params=["n"]),
     methods={
         "add": Method(
             params=["self","m"],
@@ -264,18 +291,24 @@ class B (A) :
 tst2 = B().mm()
 # end example
 
-env["A"] = Object.mkClass("A",Object.objectClass(),Init([]),
-                     {"mm": Method(["self"],Id("zero"))})
+env["A"] = Object.mkClass(
+    name="A",
+    supper=Object.objectClass(),
+    inits=Init(constraints=[],params=[]),
+    methods={"mm": Method(["self"],Id("zero"))}
+)
 
 env["a"] = Apply(Id("A"),[]).eval(env)
-
 env["tst2"] = Apply(Dot(Id("a"),"mm"),[]).eval(env)
 
-
-env["B"] = Object.mkClass("B",env["A"],Init([]),{})
+env["B"] = Object.mkClass(
+    name="B",
+    supper=env["A"],
+    inits=Init(constraints=[],params=[]),
+    methods={}
+)
 
 env["b"] = Apply(Id("B"),[]).eval(env)
- 
 env["tst3"] = Apply(Dot(Id("b"),"mm"),[]).eval(env)
 
 # example
@@ -329,21 +362,21 @@ class FinElim :
 env['Fin'] = Object.mkClass(
     name="Fin",
     supper=Object.objectClass(),
-    inits=Init([]),
+    inits=Init(constraints=[],params=[]),
     methods={}
 )
 
 env['FZero'] = Object.mkClass(
     name="FZero",
     supper=env['Fin'],
-    inits=Init([]),
+    inits=Init(constraints=[],params=[]),
     methods={}
 )
 
 env['FSucc'] = Object.mkClass(
     name="FSucc",
     supper=env['Fin'],
-    inits=Init(["f"]),
+    inits=Init(constraints=[],params=["f"]),
     methods={}
 )
 
@@ -416,14 +449,14 @@ class VElim :
 env["Vector"] = Object.mkClass(
     name="Vector",
     supper=Object.objectClass(),
-    inits=Init([]),
+    inits=Init(constraints=[],params=[]),
     methods={}
 )
 
 env["VNil"] = Object.mkClass(
     name="VNil",
     supper=env["Vector"],
-    inits=Init([]), 
+    inits=Init(constraints=[],params=[]), 
     methods=
       { "append": Method(
             params=["self","ys"],
@@ -435,7 +468,7 @@ env["VNil"] = Object.mkClass(
 env["VCons"] = Object.mkClass(
     name="VCons",
     supper=env["Vector"],
-    inits=Init(["x","xs"]),
+    inits=Init(constraints=[],params=["x","xs"]),
     methods=
       { "append": Method(
             params=["self","ys"],
