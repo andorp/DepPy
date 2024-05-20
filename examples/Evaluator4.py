@@ -68,21 +68,12 @@ class Closure :
     
        
 class Expr :
-    pass
-    # eval (self : Expr , env : Dict (String , Object))
-
-class Var (Expr) :
-    """Evaluation meta variable"""
-    def __init__(self,name) :
-        # name : String
-        self.name = name
-
-    def eval(self,env) :
-        return self
-
-    def __repr__(self) :
-        return f"Var({self.name})"
-
+    # eval (self, env : Dict (String , Object))
+    # equal(self , other : Expr, env : Env)
+    def equal(self,other,env) :
+#        return self.eval(env) == other.eval(env)
+         return self.eval(env).equal(other.eval(env),env)
+        
 class Constraint (Expr) :
     def __init__(self,var,e) :
         # name : String
@@ -96,6 +87,20 @@ class Constraint (Expr) :
     def __repr__(self) :
         return f"Constraint({self.name},{self.e})"
 
+class Var (Expr) :
+    def __init__(self,name) :
+        # name : String
+        self.name = name
+
+    def eval(self,env) :
+        return self
+    
+    def equal(self,other,env) :
+        return self == other    
+
+    def __repr__(self) :
+        return f"Var({self.name})"
+    
 class Id (Expr) :
     def __init__(self,name) :
         # name : String
@@ -103,7 +108,7 @@ class Id (Expr) :
 
     def eval(self,env) :
         return env[self.name]
-    
+        
     def __repr__(self) :
         return f"Id({self.name})"
             
@@ -126,6 +131,8 @@ class Dot (Expr) :
                 return Closure(theclass.state["methods"][self.f],obj)
              except KeyError :
                 theclass = theclass.state["super"] 
+        except AttributeError :
+            return self
             
 #          return Closure(obj.myclass.state["methods"][self.f],obj)
         """
@@ -155,7 +162,10 @@ class Apply(Expr) :
         self.args = args
 
     def eval(self,env) :
-        return self.e.eval(env).apply(map(lambda x:x.eval(env),self.args),env)     
+        try :
+          return self.e.eval(env).apply(map(lambda x:x.eval(env),self.args),env)   
+        except AttributeError :
+            return self
 #       self.e.eval(env).apply(map(lambda x:x.eval(env),self.args))     
 
     def __repr__(self) :
@@ -190,6 +200,21 @@ class Instance (Object) :
         self.myclass = myclass
         self.state = state
         
+    def __eq__(self,other) : # we don't check class membership of other!
+        return (self.myclass == other.myclass and self.state == other.state)
+    
+    def equal(self,other,env) :
+        if self.myclass != other.myclass :
+            return False
+        ivars = self.state.keys()
+        if ivars != other.state.keys() :
+            return False
+        for x in ivars :
+            if not self.state[x].equal(other.state[x],env) :
+                return False
+        return True   
+
+    
     def apply(self,objs,env) :
         # self.class = MetaClass (assertion)
         return Instance(self,dict(zip(self.state["inits"].params,objs)))
@@ -528,7 +553,7 @@ class Nat : # abstract: no __init__!
  
     # add(Nat) : Nat    
     
-    # lneutr(self,n : Nat) : Sgl(Zero().add(self),self)
+    # lneutr(self) : Sgl(Zero().add(self),self)
     def lneutr(self) :
         return Sgl(self) # Zero().add(self) = self
     
@@ -556,6 +581,38 @@ class Succ (Nat) :
         return Succ(self.n.add(m))
             
     def rneutr(self) : # Succ(self.n).add(Zero) = Succ(n.add(Zero))
-        return Sgl(Succ(self.n.rneutr())) 
+        return Sgl(Succ(self.n.rneutr().val)) 
     # self.n.rneutr() : Sgl(self.n.add(Zero))[val=self.n]
     
+"""
+self.add(Zero)
+"""
+# env1={}
+env["self"] = Var("self")
+"""
+print(Id("self").eval(env))
+print(Dot(Id("self"),"add").eval(env))
+print(Apply(Dot(Id("self"),"add"),[Apply(Id("Zero"),[])]).eval(env))
+print(Apply(Dot(Apply(Id("Zero"),[]),"add"),[Id("self")]).eval(env))
+print(Apply(Dot(Apply(Id("Zero"),[]),"add"),[Id("self")]).equal(Id("self"),env))
+print(Apply(Id("Zero"),[]).equal(Id("self"),env))
+"""
+# Zero().add(Zero) = Zero() 
+print(Apply(Dot(Apply(Id("Zero"),[]),"add"),[Apply(Id("Zero"),[])]).eval(env))
+print("xxx")
+print(Apply(Id("Zero"),[]).eval(env))
+
+print(Apply(Dot(Apply(Id("Zero"),[]),"add"),[Apply(Id("Zero"),[])]).equal(Apply(Id("Zero"),[]),env))
+print("zzz")
+# Succ(self.n).add(Zero) = Succ(n.add(Zero))
+env["n"] = Var("n")
+lhs = Apply(Dot(Apply(Id("Succ"),[Dot(Id("self"),"n")]),"add"),[Apply(Id("Zero"),[])])
+print(lhs.eval(env))
+#rhs = Apply(Id("Succ"),[Apply(Dot(Id("n"),"add"),[Apply(Id("Zero"),[])])])
+#print(rhs.eval(env))
+#print(lhs.equal(rhs,env))
+"""
+print(Apply(Id("Zero"),[]).equal(Apply(Id("Zero"),[]),env))
+print(Id("n").eval(env))
+print(Id("n").equal(Id("n"),env))
+"""
