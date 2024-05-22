@@ -346,11 +346,9 @@ class Fin :
     
 
 class FZero :
-    def __init__(self) :
+    def __init__(self,m) :
         # m : Nat
-        # Field = expression
-        # self.n = Succ(m)
-        pass
+        self.n = Succ(m)
 
     def lookupNil(self) :
         raise TypeError("Impossible TODO Explain")
@@ -364,7 +362,7 @@ class FZero :
 class FSucc :
     def __init__(self,f) :
         # f : Fin
-        # self.n = Succ(f.n)
+        self.n = Succ(f.n)
         self.f = f
         
     def lookupNil(self) :
@@ -412,22 +410,21 @@ env['f2'] = Apply(Id("FSucc"),[Id("f1")]).eval(env)
 # example
 # Heterogenous vector
 class Vector :
-    # self.n : Nat
+    # n : Nat
     pass
 
-    # append(ys : Vector) : Vector [.n = self.n.add(ys.n)]
+    # append(self, ys : Vector) : Vector [n = self.n.add(ys.n)]
+    # append(self, ys : Vector) : Vector [n = self.n + ys.n]
 
     # lookup(i : Fin [.n = self.n]) : Any
 
 class VNil (Vector) :
     def __init__(self):
-        # self.n = Zero
-        pass
+        self.n = Zero
 
     # append(ys) : Vector
     # append(ys).n = ys.n
-    def append(self,ys):
-        # ys : Vector
+    def append(self,ys):    
         return ys
         # CHECK ys.n = self.n.add(ys.n) 
         #            = zero.add(ys.n) = ys.n
@@ -442,7 +439,7 @@ class VCons (Vector) :
     
     def __init__(self,x,xs):
         # xs : Vector
-        # self.n = Succ(xs.n)
+        self.n = Succ(xs.n)
         self.x  = x
         self.xs = xs
 
