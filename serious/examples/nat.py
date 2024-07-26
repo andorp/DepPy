@@ -40,11 +40,55 @@ oneCode = Apply(Var("Succ"),[Apply(Var("Zero"),[])])
 twoCode = Apply(Var("Succ"),[oneCode])
 threeCode = Apply(Dot(oneCode,"add"),[twoCode])
 
-nat = Program({"Nat":Class(None,[],{}),
-               "Zero":Class("Nat",[],{"add":Method(["self","m"],Var("m"))}),
-               "Succ":Class("Nat",[],{"add":Method(["self","m"],Apply(Var("Succ"),[Apply(Dot(Dot(Var("self"),"n"),"add"),[Var("m")])]))})
-               },threeCode)
+classdefs = {"Nat":Class("Object",[],{}),
+             "Zero":Class("Nat",[],{"add":Method(["self","m"],Var("m"))}),
+             "Succ":Class("Nat",["n"],{"add":Method(["self","m"],Apply(Var("Succ"),[Apply(Dot(Dot(Var("self"),"n"),"add"),[Var("m")])]))})
+               }
 
-print(nat)
+nat = Program(classdefs,threeCode)
 
-print(nat.eval())
+# print(nat)
+# print(nat.eval())
+"""
+e1 = Var("x")
+env = {"x":1}
+print(e1.eval({},{},env))
+"""
+
+"""
+tst1 = Program(classdefs,Var("Nat"))
+print(tst1.eval())
+
+
+tst2 = Program(classdefs,Var("Zero"))
+print(tst2.eval())
+"""
+
+zero_code = Apply(Var("Zero"),[])
+"""
+tst3 = Program(classdefs,zero_code)
+print(tst3.eval())
+"""
+
+one_code = Apply(Var("Succ"),[zero_code])
+"""
+tst4 = Program(classdefs,one_code)
+#print(tst4.eval())
+print(tst4.eval().env["state"])
+
+
+tst5 = Program(classdefs,(Dot(one_code,"n")))
+print(tst5.eval())
+
+
+tst6 = Program(classdefs,Dot(zero_code,"add"))
+print(tst6.eval())
+"""
+
+tst7 = Program(classdefs,Apply(Dot(zero_code,"add"),[zero_code]))
+print(tst7.eval())
+# we need to pass self!
+
+
+
+
