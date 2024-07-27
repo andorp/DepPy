@@ -55,10 +55,8 @@ class Expr : # abstract
     pass
 
     # eval : Expr -> Dict str Object -> Dict str Object -> Dict str Object -> Object
-    """
-    def eval(self,classenv,methenv,locenv) :
-        return Object("test",{"x":1})   
-    """
+    # def eval(self,classenv,methenv,locenv) :
+    #     return Object("test",{"x":1})   
 
 class Var (Expr) :
     def __init__(self,name) :
@@ -76,7 +74,7 @@ class Var (Expr) :
         elif self.name in classenv :
             return classenv[self.name]
         else :
-            raise KeyError(self.name)        
+            raise KeyError(f"Can't find variable {self.name}.")        
 class Dot (Expr) :
     def __init__(self,expr,field) :
         # e : Expr
@@ -101,9 +99,9 @@ class Dot (Expr) :
                 m.env["params"] = ps[1:]
                 return m
             else :
-                raise KeyError(self.field) 
+                raise KeyError(f"{self.field} is not an instance variable nor a method.") 
         else :
-            raise TypeError(v.atype)
+            raise TypeError(f"Expected an object got {v.atype}.")
 
 class Apply(Expr) :
     def __init__(self,expr,args) :
@@ -114,25 +112,20 @@ class Apply(Expr) :
  
     def eval(self,classenv,methenv,locenv) :
         m = self.expr.eval(classenv,methenv,locenv)
-        if m.atype == "method" :           
-            ps = m.env["params"]
-            cl = m.env["body"]
-            closLocEnv = cl.env["local"]
-            for e in self.args :
-                closLocEnv = update(closLocEnv,ps[0],e.eval(classenv,methenv,locenv))
-                ps = ps[1:]  
-            return cl.env["expr"].eval(cl.env["classes"],cl.env["methods"],closLocEnv)
+        if m.atype == "method" :
+            cl  = m.env["body"]
+            env = cl.env["local"]
+            for (p,e) in zip(m.env["params"],self.args) :
+                env = update(env,p,e.eval(classenv,methenv,locenv))
+            return cl.env["expr"].eval(cl.env["classes"],cl.env["methods"],env)
         elif m.atype == "class" :
-            ps = m.env["instvars"]
             state = {}
-            for e in self.args :
-              state = update(state,ps[0],e.eval(classenv,methenv,locenv))
-              ps = ps[1:]
+            for (p,e) in zip(m.env["instvars"],self.args) :
+              state = update(state,p,e.eval(classenv,methenv,locenv))
             return mkObject(m,state)
         else :
-            raise TypeError(f"Method or class expected but found {m.atype}")
-            
-    
+            raise TypeError(f"Method or class expected but found {m.atype}.")
+
     def __repr__(self) :
         return f"Apply({self.expr},{self.args})"        
        
