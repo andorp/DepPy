@@ -5,6 +5,7 @@ Created on Fri Jul 12 16:14:15 2024
 
 @author: psztxa
 """
+import unittest
 from code.syntax import *
 
 class Nat : 
@@ -40,10 +41,17 @@ oneCode = Apply(Var("Succ"),[Apply(Var("Zero"),[])])
 twoCode = Apply(Var("Succ"),[oneCode])
 threeCode = Apply(Dot(oneCode,"add"),[twoCode])
 
-classdefs = {"Nat":Class("Object",[],{}),
-             "Zero":Class("Nat",[],{"add":Method(["self","m"],Var("m"))}),
-             "Succ":Class("Nat",["n"],{"add":Method(["self","m"],Apply(Var("Succ"),[Apply(Dot(Dot(Var("self"),"n"),"add"),[Var("m")])]))})
-               }
+classdefs = {
+    "Nat":Class("Object",[],{}),
+    
+    "Zero":Class("Nat",[],
+        {"add":Method(["self","m"],Var("m"))}
+    ),
+    
+    "Succ":Class("Nat",["n"],
+        {"add":Method(["self","m"],Apply(Var("Succ"),[Apply(Dot(Dot(Var("self"),"n"),"add"),[Var("m")])]))}
+    )
+}
 
 nat = Program(classdefs,threeCode)
 
@@ -85,10 +93,17 @@ tst6 = Program(classdefs,Dot(zero_code,"add"))
 print(tst6.eval())
 """
 
-tst7 = Program(classdefs,Apply(Dot(zero_code,"add"),[zero_code]))
-print(tst7.eval())
+# tst7 = Program(classdefs,Apply(Dot(zero_code,"add"),[zero_code]))
+# print(tst7.eval())
 # we need to pass self!
 
+class Test(unittest.TestCase) :
+    
+    def test1(self):
+        found = Program(classdefs,Var("Nat")).eval()
+        self.assertEqual(found.atype,"class")
+        self.assertEqual(found.env["instvars"],[])
+        self.assertEqual(found.env["methods"],{})
 
-
-
+if __name__ == '__main__':
+    unittest.main()
