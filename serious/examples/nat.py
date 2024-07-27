@@ -72,11 +72,11 @@ class Test(unittest.TestCase) :
         Checks if looking up Zero leads to a its class representation
         """
         result = Program(classdefs,Var("Zero")).eval()
-        print(result)
         self.assertEqual(result.atype,"class")
         self.assertEqual(result.env["instvars"],[])
-        self.assertIn("add",result.env["methods"])
         self.assertNotEqual(result.env["parent"], None)
+        add = result.env["methods"]["add"]
+        self.assertEqual(add.env["params"],['self','m'])
 
     def test3(self):
         """
@@ -107,10 +107,11 @@ class Test(unittest.TestCase) :
         Checks if referencing a function from the zero object leads to a method of two parameters.
         """
         result = Program(classdefs,Dot(zero_code,"add")).eval()
-        # print(found)
         self.assertEqual(result.atype,"method")
-        self.assertEqual(result.env["params"],['self','m'])
-        self.assertNotEqual(result.env["body"],None)
+        # Dot applies the first argument and removes it from the active parameter list.
+        self.assertEqual(result.env["params"],['m'])
+        # And adds the first argument to the local environment.
+        self.assertIn("self",result.env["body"].env["local"])
 
     def test7(self):
         """

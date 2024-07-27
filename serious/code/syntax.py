@@ -90,12 +90,21 @@ class Dot (Expr) :
     def eval(self,classenv,methenv,locenv) :
         v = self.expr.eval(classenv,methenv,locenv)
         if v.atype == "object" :
-            try :
+            if self.field in v.env["state"] :
                 return v.env["state"][self.field]
-            except KeyError :
-                return v.env["class"].env["methods"][self.field] # TODO: add self to local env
-            
-        
+            elif self.field in v.env["class"].env["methods"] :
+                # Add self to local env, and remove the first parameter
+                # as it is already applied.
+                m = copyMethod(v.env["class"].env["methods"][self.field])
+                ps = m.env["params"]
+                m.env["body"].env["local"][ps[0]] = v
+                m.env["params"] = ps[1:]
+                return m
+            else :
+                raise KeyError(self.field) 
+        else :
+            raise TypeError(v.atype)
+
 class Apply(Expr) :
     def __init__(self,expr,args) :
         # e : Expr

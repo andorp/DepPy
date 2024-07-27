@@ -44,9 +44,26 @@ def mkClass (aclass,classenv) :
 def mkClosure(expr,classes,methods,local) :
     return Object("closure",{"expr":expr,"classes":classes,"methods":methods,"local":local})
 
+def copyClosure(closure) :
+    return Object(
+        "closure",
+        { "expr"    : closure.env["expr"]
+        , "classes" : closure.env["classes"].copy()
+        , "methods" : closure.env["methods"].copy()
+        , "local"   : closure.env["local"].copy()
+        })
+
 # mkMethod : Method -> dict String Object -> dict String Object -> Object
 def mkMethod(method,classes,methods) :
     return Object("method",{"params":method.params,"body":mkClosure(method.body,classes,methods,{})})
+
+def copyMethod(method) :
+    return Object(
+        "method",
+        { "params":method.env["params"].copy()
+        , "body":copyClosure(method.env["body"])
+        }
+    )
 
 def mkObject(aclass,state) :
     return Object("object",{"class":aclass,"state":state})
