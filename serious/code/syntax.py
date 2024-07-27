@@ -69,14 +69,14 @@ class Var (Expr) :
         return f"Var({self.name})"           
     
     def eval(self,classenv,methenv,locenv) :
-        try :
+        if self.name in locenv :
             return locenv[self.name]
-        except KeyError :
-          try :
+        elif self.name in methenv :
             return methenv[self.name]
-          except KeyError :
-              return classenv[self.name]
-        
+        elif self.name in classenv :
+            return classenv[self.name]
+        else :
+            raise KeyError(self.name)        
 class Dot (Expr) :
     def __init__(self,expr,field) :
         # e : Expr
