@@ -53,57 +53,72 @@ classdefs = {
     )
 }
 
-nat = Program(classdefs,threeCode)
-
-# print(nat)
-# print(nat.eval())
-"""
-e1 = Var("x")
-env = {"x":1}
-print(e1.eval({},{},env))
-"""
-
-"""
-tst1 = Program(classdefs,Var("Nat"))
-print(tst1.eval())
-
-
-tst2 = Program(classdefs,Var("Zero"))
-print(tst2.eval())
-"""
-
 zero_code = Apply(Var("Zero"),[])
-"""
-tst3 = Program(classdefs,zero_code)
-print(tst3.eval())
-"""
-
 one_code = Apply(Var("Succ"),[zero_code])
-"""
-tst4 = Program(classdefs,one_code)
-#print(tst4.eval())
-print(tst4.eval().env["state"])
-
-
-tst5 = Program(classdefs,(Dot(one_code,"n")))
-print(tst5.eval())
-
-
-tst6 = Program(classdefs,Dot(zero_code,"add"))
-print(tst6.eval())
-"""
-
-# tst7 = Program(classdefs,Apply(Dot(zero_code,"add"),[zero_code]))
-# print(tst7.eval())
-# we need to pass self!
 
 class Test(unittest.TestCase) :
     
     def test1(self):
-        found = Program(classdefs,Var("Nat")).eval()
-        self.assertEqual(found.atype,"class")
-        self.assertEqual(found.env["instvars"],[])
-        self.assertEqual(found.env["methods"],{})
+        """
+        Checks is looking up the Nat leads to a Class object, which doesn't have any instance variables nor methods.
+        """
+        result = Program(classdefs,Var("Nat")).eval()
+        self.assertEqual(result.atype,"class")
+        self.assertEqual(result.env["instvars"],[])
+        self.assertEqual(result.env["methods"],{})
+
+    def test2(self):
+        """
+        Checks if looking up Zero leads to a its class representation
+        """
+        result = Program(classdefs,Var("Zero")).eval()
+        print(result)
+        self.assertEqual(result.atype,"class")
+        self.assertEqual(result.env["instvars"],[])
+        self.assertIn("add",result.env["methods"])
+        self.assertNotEqual(result.env["parent"], None)
+
+    def test3(self):
+        """
+        Checks if evaluation of Zero constructor leads to the zero object.
+        """
+        result = Program(classdefs,zero_code).eval()
+        self.assertEqual(result.atype,"object")
+        self.assertEqual(result.env["state"],{})
+
+    def test4(self):
+        """
+        Checks if one has a non-empty n field.
+        """
+        result = Program(classdefs,one_code).eval()
+        self.assertEqual(result.atype,"object")
+        self.assertIn("n",result.env["state"])
+
+    def test5(self):
+        """
+        Checks if looking up n from one leads to zero.
+        """
+        result = Program(classdefs,(Dot(one_code,"n"))).eval()
+        self.assertEqual(result.atype,"object")
+        self.assertEqual(result.env["state"],{})
+
+    def test6(self):
+        """
+        Checks if referencing a function from the zero object leads to a method of two parameters.
+        """
+        result = Program(classdefs,Dot(zero_code,"add")).eval()
+        # print(found)
+        self.assertEqual(result.atype,"method")
+        self.assertEqual(result.env["params"],['self','m'])
+        self.assertNotEqual(result.env["body"],None)
+
+    def test7(self):
+        """
+        Checks if calling the add method on the zero object leads to the zero result.
+        """
+        result = Program(classdefs,Apply(Dot(zero_code,"add"),[zero_code])).eval()
+        self.assertEqual(result.atype,"object")
+        self.assertEqual(result.env["state"],{})
 
 if __name__ == '__main__':
     unittest.main()
