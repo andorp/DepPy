@@ -17,13 +17,17 @@ class Program :
     def __repr__(self) :
         return f"Program({self.classes},{self.main})"
 
-    # eval : Program -> Dict str object
+    # eval : Program -> Object
     def eval(self) : 
-        return self.main.eval(evalClasses(self.classes),{},{})
+        env = {"Object":objectClass}
+        for name in self.classes:
+            env[name] = self.classes[name].eval(env)
+        # use destructive update to enable mutual recursion
+        return self.main.eval(env)
 
 class Class :
     def __init__(self,parent,instvars,methods):
-        # super : str
+        # parent : str
         # instvars : list str
         # methods : dict String method
         self.parent = parent
@@ -34,8 +38,9 @@ class Class :
         return f"Class({self.parent},{self.instvars},{self.methods})" 
 
     # eval : Class -> Dict str Object -> Object      
-    def eval(self,classenv) :
-        return mkClass(self,classenv)
+    def eval(self,env) :
+        return ClassObj(env[self.parent],self.instvars,
+                     {p : self.methods[p].eval(env) for p in self.methods.keys()})
     
 class Method : 
     def __init__(self,params,body):
@@ -48,8 +53,8 @@ class Method :
         return f"Method({self.params},{self.body})"       
     
     # eval : Method -> Dict str Object -> Dict str Object  -> Object
-    def eval(self,classenv,methenv) :
-        return mkMethod(self,classenv,methenv)
+    def eval(self,env) :
+        return MethodObj(self.params,self.body,env)
         
 class Expr : # abstract
     pass
@@ -66,42 +71,32 @@ class Var (Expr) :
     def __repr__(self) :
         return f"Var({self.name})"           
     
-    def eval(self,classenv,methenv,locenv) :
-        if self.name in locenv :
-            return locenv[self.name]
-        elif self.name in methenv :
-            return methenv[self.name]
-        elif self.name in classenv :
-            return classenv[self.name]
-        else :
-            raise KeyError(f"Can't find variable {self.name}.")        
+    def eval(self,env) :
+        return env[self.name]
+      
 class Dot (Expr) :
     def __init__(self,expr,field) :
-        # e : Expr
-        # f : str
+        # expr : Expr
+        # field : str
         self.expr = expr
         self.field = field
 
     def __repr__(self) :
         return f"Dot({self.expr},{self.field})"        
 
-    def eval(self,classenv,methenv,locenv) :
-        v = self.expr.eval(classenv,methenv,locenv)
-        if v.atype == "object" :
-            if self.field in v.env["state"] :
-                return v.env["state"][self.field]
-            elif self.field in v.env["class"].env["methods"] :
-                # Add self to local env, and remove the first parameter
-                # as it is already applied.
-                m = copyMethod(v.env["class"].env["methods"][self.field])
-                ps = m.env["params"]
-                m.env["body"].env["local"][ps[0]] = v
-                m.env["params"] = ps[1:]
-                return m
-            else :
-                raise KeyError(f"{self.field} is not an instance variable nor a method.") 
-        else :
-            raise TypeError(f"Expected an object got {v.atype}.")
+    def eval(self,env) :
+        v = self.expr.eval(env)
+        try : 
+            return v.state[self.field]
+        except KeyError :
+            aclass = v.aclass
+            while True :
+                try :
+                  return aclass.methods[self.field].applySelf(v)
+                except KeyError :
+                    aclass = aclass.asuper
+                    continue
+                # catch none error, return own error
 
 class Apply(Expr) :
     def __init__(self,expr,args) :
@@ -110,23 +105,6 @@ class Apply(Expr) :
         self.expr = expr
         self.args = args
  
-    def eval(self,classenv,methenv,locenv) :
-        m = self.expr.eval(classenv,methenv,locenv)
-        if m.atype == "method" :
-            cl  = m.env["body"]
-            env = cl.env["local"]
-            for (p,e) in zip(m.env["params"],self.args) :
-                env = update(env,p,e.eval(classenv,methenv,locenv))
-            return cl.env["expr"].eval(cl.env["classes"],cl.env["methods"],env)
-        elif m.atype == "class" :
-            state = {}
-            for (p,e) in zip(m.env["instvars"],self.args) :
-              state = update(state,p,e.eval(classenv,methenv,locenv))
-            return mkObject(m,state)
-        else :
-            raise TypeError(f"Method or class expected but found {m.atype}.")
-
-    def __repr__(self) :
-        return f"Apply({self.expr},{self.args})"        
-       
-        
+    def eval(self,env) :
+        return self.expr.eval(env).apply([arg.eval(env) for arg in self.args])
+           
