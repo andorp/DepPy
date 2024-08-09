@@ -71,7 +71,22 @@ class Expr (Value): # abstract
 
     def apply(self,values) :
         return Apply(self,values)
-
+    
+    def equal(self,other) :
+        return self.equalExpr(other)
+    
+    def equalObject(self,other):
+        return False
+    
+    def equalVar(self,other) :
+        return False
+    
+    def equalDot(self,other) :
+        return False
+        
+    def equalApply(self,other) :
+        return False
+             
 class Var (Expr) :
     def __init__(self,name) :
         # name : str
@@ -83,6 +98,12 @@ class Var (Expr) :
     def eval(self,env) :
         return env[self.name]
  
+    def equalExpr(self,other) :
+        return self.equalVar(other)
+        
+    def equalVar(self,other) :
+        return self.name == other.name 
+    
       
 class Dot (Expr) :
     def __init__(self,value,field) :
@@ -97,7 +118,13 @@ class Dot (Expr) :
     def eval(self,env) :
         return self.value.eval(env).evalDot(self.field)
 
+    def equalExpr(self,other) :
+        return other.equalDot(self)
 
+    def equalDot(self,other) :
+        return self.field == other.field and \
+               self.value.equal(other.value)
+    
 class Apply(Expr) :
     def __init__(self,value,args) :
         # e : Expr
@@ -110,4 +137,18 @@ class Apply(Expr) :
 
     def eval(self,env) :
         return self.value.eval(env).apply([arg.eval(env) for arg in self.args])
-           
+    
+    def equalExpr(self,other) :
+        return other.equalApply(self)
+
+    def equalApply(self,other) :
+        if self.value.equal(other.value) \
+           and len(self.args)==len(other.args) :
+           for i in range(len(self.args)) :
+               if not self.args[i].equal(other.args[i]) :
+                   return False
+           return True
+        else :
+            return False
+
+               

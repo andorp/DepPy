@@ -177,7 +177,47 @@ class Test(unittest.TestCase) :
         #self.assertEqual(result.atype,"object")
         print(result)
 #        self.assertEqual(result.state,{})           
-
+        
+    def test14(self) :
+        """
+        Evaluating a stuck apply
+        """
+        result = Program(classdefs,zero_code).eval()
+        #self.assertEqual(result.atype,"object")
+        print(result)
+        print(result.equal(result))
+#        self.assertEqual(result.state,{})   
+        
+        
+    def test15(self) :
+        """
+        Evaluating a stuck apply
+        """
+        result = Program(classdefs,Var("x")).eval(env)
+        #self.assertEqual(result.atype,"object")
+        print(result)
+        print(result.equal(result))
+#        self.assertEqual(result.state,{})   
+        
+    def test16(self) :
+        """
+        Evaluating a stuck apply
+        """
+        result = Program(classdefs,Apply(Var("Succ"),[Var("x")])).eval(env)
+        #self.assertEqual(result.atype,"object")
+        print(result)
+        print(result.equal(result))
+#        self.assertEqual(result.state,{})  
+        
+    def test17(self) :
+        """
+        Evaluating a stuck apply
+        """
+        result = Program(classdefs,Apply(Var("Succ"),[Var("x")])).eval(env)
+        #self.assertEqual(result.atype,"object")
+        print(result)
+        print(result.equal(result))
+#        self.assertEqual(result.state,{})  
 
 if __name__ == '__main__':
     unittest.main()
