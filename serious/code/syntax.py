@@ -17,22 +17,23 @@ class Program :
     def __repr__(self) :
         return f"Program({self.classes},{self.main})"
 
-    # eval : Program -> Object
-    def eval(self) : 
-        env = {"Object":objectClass}
+    # eval : Program -> Dict str Value -> Value
+    def eval(self,env = {}):
+        env["Object"] = objectClass
         for name in self.classes:
             env[name] = self.classes[name].eval(env)
         # use destructive update to enable mutual recursion
         return self.main.eval(env)
 
 class Class :
-    def __init__(self,parent,instvars,methods):
+    def __init__(self,parent,instvars,methods,name=""):
         # parent : str
         # instvars : list str
         # methods : dict String method
         self.parent = parent
         self.instvars = instvars
         self.methods = methods
+        self.name = name
 
     def __repr__(self) :
         return f"Class({self.parent},{self.instvars},{self.methods})" 
@@ -40,28 +41,36 @@ class Class :
     # eval : Class -> Dict str Object -> Object      
     def eval(self,env) :
         return ClassObj(env[self.parent],self.instvars,
-                     {p : self.methods[p].eval(env) for p in self.methods.keys()})
+                     {p : self.methods[p].eval(env) for p in self.methods.keys()},
+                     name=self.name)
     
 class Method : 
-    def __init__(self,params,body):
+    def __init__(self,params,body,name=""):
         # args : list str
-        # body : expr
+        # body : value
         self.params = params
         self.body = body
+        self.name = name
         
     def __repr__(self) :
         return f"Method({self.params},{self.body})"       
     
     # eval : Method -> Dict str Object -> Dict str Object  -> Object
     def eval(self,env) :
-        return MethodObj(self.params,self.body,env)
+        return MethodObj(self.params,self.body,env,name=self.name)
         
-class Expr : # abstract
+class Expr (Value): # abstract
     pass
 
-    # eval : Expr -> Dict str Object -> Dict str Object -> Dict str Object -> Object
+    # eval : Expr -> Dict str Value -> Value
     # def eval(self,classenv,methenv,locenv) :
     #     return Object("test",{"x":1})   
+
+    def evalDot(self,field) :
+        return Dot(self,field)
+
+    def apply(self,values) :
+        return Apply(self,values)
 
 class Var (Expr) :
     def __init__(self,name) :
@@ -73,38 +82,32 @@ class Var (Expr) :
     
     def eval(self,env) :
         return env[self.name]
+ 
       
 class Dot (Expr) :
-    def __init__(self,expr,field) :
-        # expr : Expr
+    def __init__(self,value,field) :
+        # value : Value
         # field : str
-        self.expr = expr
+        self.value = value
         self.field = field
 
     def __repr__(self) :
-        return f"Dot({self.expr},{self.field})"        
+        return f"Dot({self.value},{self.field})"        
 
     def eval(self,env) :
-        v = self.expr.eval(env)
-        try : 
-            return v.state[self.field]
-        except KeyError :
-            aclass = v.aclass
-            while True :
-                try :
-                  return aclass.methods[self.field].applySelf(v)
-                except KeyError :
-                    aclass = aclass.asuper
-                    continue
-                # catch none error, return own error
+        return self.value.eval(env).evalDot(self.field)
+
 
 class Apply(Expr) :
-    def __init__(self,expr,args) :
+    def __init__(self,value,args) :
         # e : Expr
         # args : list Expr
-        self.expr = expr
+        self.value = value
         self.args = args
- 
+        
+    def __repr__(self) :
+        return f"Apply({self.value},{self.args})"
+
     def eval(self,env) :
-        return self.expr.eval(env).apply([arg.eval(env) for arg in self.args])
+        return self.value.eval(env).apply([arg.eval(env) for arg in self.args])
            
