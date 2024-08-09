@@ -136,13 +136,12 @@ class MethodObj(Object) :
     def equalObject(self,other):
         return other.equalMethodObject(self)
     
-    def equalMethodObject(self,other) :
-        from code.syntax import Var
-        print(Var("x"))
-        return self.params == other.params and \
-               self.expr.equal(other.expr)
+    # def equalMethodObject(self,other) :
+    #     from code.syntax import Var
+    #     return self.params == other.params and \
+    #            self.expr.equal(other.expr)
         
-    """
+    
     def equalMethodObject(self,other) :
         from code.syntax import Var
         if self.params == other.params :
@@ -154,7 +153,7 @@ class MethodObj(Object) :
            return self.expr.eval(selfEnv).equal(other.expr.eval(otherEnv))
         else :
            return False
-     """ 
+      
         
  # Todo : alpha conversion by zipping"      
         

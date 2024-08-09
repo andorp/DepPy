@@ -48,10 +48,16 @@ classdefs = {
         {"add":Method(["self","m"],Var("m"),name="Zero.add")},
         name="Zero"),
     
+    # "Succ":Class("Nat",["n"],
+    #     {"add":Method(["self","m"],Apply(Var("Succ"),[Apply(Dot(Dot(Var("self"),"n"),"add"),[Var("m")])]),
+    #          name="Succ.add")},
+    #     name="Succ")
+    
     "Succ":Class("Nat",["n"],
-        {"add":Method(["self","m"],Apply(Var("Succ"),[Apply(Dot(Dot(Var("self"),"n"),"add"),[Var("m")])]),
+        {"add":Method(["self","m"],Apply(Var("Succ"),[Var("m")]),
              name="Succ.add")},
         name="Succ")
+    # non recursive version, still loops
 }
 
 zero_code = Apply(Var("Zero"),[])
