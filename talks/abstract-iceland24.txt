@@ -1,0 +1,6 @@
+			 Thorsten Altenkirch
+		       University of Nottingham
+
+		   Πthon - dependently typed Python
+
+I want to talk about the design of Πthon, an OOP langauge with dependent types inspired by Python. This is project I am developing with Andor Penzes who in his day job is a Haskell developer. I will explain the design ideas using some examples - the implementation (obviously in Python) isn't finished yet but we are making progress. 
