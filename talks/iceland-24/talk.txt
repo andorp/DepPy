@@ -1,0 +1,46 @@
+Why dependent types?
+
+static checking, eg out of range errors
+avoid run time errors
+dependently typed languages are functional (agda)
+can we marry dependent types and OOP
+Python, dynamically typed, popular, ideal case
+
+joint project with Andor Penzes, Standard Chartered (not approved)
+
+verification?
+dependent types are powerful enough to express any invariant
+need termination
+
+state of the project:
+started implementation, not finishded
+will talk about the ideas using some examples
+
+functional programming in Python
+start from scratch
+
+implement Nat
+add
+simple types
+
+vectors
+append
+
+fin
+lookup
+
+show code
+symbolic evaluation
+type checker
+
+plan use existing python tools
+type annotation in strings
+
+what about exceptions and states
+monadic interface
+try blocks introduce monads with possible exceptions and updateable states
+types can also be monadic (eg have effects)
+
+
+
+
