@@ -3,161 +3,203 @@ open import Data.Fin
 open import Data.Vec hiding (lookup ; _>>=_)
 open import Data.List hiding (lookup)
 open import Data.Maybe
--- open import Control.Monad
 
-lookup : ∀ {A : Set} → ℕ → List A → Maybe A
-lookup zero    (x ∷ xs) = just x
-lookup (suc n) (x ∷ xs) = lookup n xs
-lookup _       []       = nothing
+variable A  B C : Set
+variable m n : ℕ
+
+lookup : List A →  ℕ → Maybe A
+lookup [] n = nothing
+lookup (x ∷ xs) zero = just x
+lookup (x ∷ xs) (suc n) = lookup xs n
+
+vlookup : Vec A n → Fin n → A
+vlookup (x ∷ xs) zero = x
+vlookup (x ∷ xs) (suc i) = vlookup xs i
+
+list2vec : List A → Maybe (Vec A n)
+list2vec {n = zero} [] = just []
+list2vec {n = zero} (x ∷ as) = nothing
+list2vec {n = suc n} [] = nothing
+list2vec {n = suc n} (x ∷ as) = 
+  do
+    ys ← list2vec {n = n} as
+    just (x ∷ ys)
+
+module _(n-classes : ℕ) where
+
+  data ClassVar : Set where
+    object : ClassVar
+    aclass : Fin n-classes → ClassVar
+
+  data Field : Set where
+    methodRef : ℕ → Field
+    fieldRef : ℕ → Field
+
+  data Expr (vars : ℕ) : Set where
+    class : ClassVar → Expr vars
+    var : Fin vars → Expr vars
+    _·_ : Expr vars → (fld : Field) → Expr vars
+    _$_ : Expr vars → List (Expr vars) → Expr vars 
+
+  record Method : Set where
+    field
+      params : ℕ
+      body : Expr (suc params) -- zero is self
+
+  open Method
+
+  record Class : Set where
+    field
+      parent : ClassVar 
+      instvars : ℕ
+      methods : List Method
+
+  open Class 
+
+  {-
+  data Classes : Set where
+    [] : Classes 
+    _▷_ : Classes → Class → Classes 
+  -}
+
+  Classes : Set
+  Classes = Vec Class n-classes
 
 
-variable n : ℕ
+  -- semantics
 
-data ClassVar : Set where
-  object : ClassVar 
-  aclass : ℕ → ClassVar 
+  data Object : Set
 
-data Field : Set where
-  methodRef : ℕ → Field
-  fieldRef : ℕ → Field
+  record SimpleObject : Set where
+    inductive
+    field
+      oclass : ClassVar
+      state : List Object
 
-data Expr (vars : ℕ) : Set where
-  class : ClassVar → Expr vars
-  var : Fin vars → Expr vars
-  _·_ : Expr vars → (fld : Field) → Expr vars
-  _$_ : Expr vars → List (Expr vars) → Expr vars 
+  open SimpleObject
 
-record Method : Set where
-  field
-    params : ℕ
-    body : Expr (suc params) -- zero is self
+  data Object where
+    class : ClassVar → Object 
+    meth : Method → SimpleObject → Object 
+    simple : SimpleObject → Object
 
+  module _(cls : Classes) where
 
-record Class : Set where
-  field
-    parent : ClassVar 
-    instvars : ℕ
-    methods : List Method
-    -- suc classes because we can refer to the current class
---    code : Fin methods → (Method (suc classes))
+    dot : Object → Field → Maybe Object
+    dot (class x) n = nothing
+    dot (meth x _) n = nothing
+    dot (simple x) (fieldRef n) = lookup (state x) n
+    dot (simple x) (methodRef m) with oclass x
+    ... | object = nothing
+    ... | aclass n =
+      do c ← just (vlookup cls n)
+         g ← lookup (methods c) m
+         just (meth g x)
+    -- need to loop here
 
-open Class
+    {-# TERMINATING #-}
+    evalExpr : {vars : ℕ}(e : Expr vars) → Vec Object vars → Maybe Object 
 
-{-
-data Classes : Set where
-  [] : Classes 
-  _▷_ : Classes → Class → Classes 
--}
+    apply : Object → List Object → Maybe Object
+    apply (class x) xs = just (simple (record { oclass = x ; state = xs })) -- constructor
+    apply (meth x self) xs =
+      do
+        ys ← list2vec xs
+        evalExpr (body x) ((simple self) ∷ ys)
+    apply (simple x) xs = nothing
 
-Classes : Set
-Classes = List Class
+    evalArgs : {vars : ℕ}(es : List (Expr vars)) → Vec Object vars → Maybe (List Object) 
+
+    evalExpr (class x) env = just (class x)
+    evalExpr (var x) env = just (Data.Vec.lookup env x)
+    evalExpr (e · fld) env = 
+      do
+        v ← evalExpr e env
+        dot v fld
+    evalExpr (e $ es) env = 
+      do
+        f ← evalExpr e env
+        ys ← evalArgs es env
+        apply f ys
+
+    evalArgs [] env = just []
+    evalArgs (x ∷ es) env = 
+      do
+        y ← evalExpr x env
+        ys ← evalArgs es env
+        just (y ∷ ys)
 
 
 record Program : Set where
   field
-    theclasses : Classes
-    main : Expr zero
+    n-classes : ℕ
+    theclasses : Classes n-classes
+    main : Expr n-classes zero
 
 open Program
-{-
-class Nat :
-    "add (n : Nat) : Nat -> Nat"
-    
-    pass
 
-class Zero (Nat) :
-    
-    def __init__(self) :
-        pass
-    
-    def add(self, n) :
-        return n
+evalProg : (p : Program) → Maybe (Object (n-classes p))
+evalProg record { n-classes = n-classes ; theclasses = theclasses ; main = main } =
+         evalExpr n-classes theclasses main []
 
-class Suc(Nat) :
-    
-    def __init__(self, m) :
-        "m : Nat"
-        self.m = m
-        
-    def add(self,n) :
-        return Suc(self.m.add(n))
-        
-one = Zero()
--}
+  {-
+  class Nat :
+      "add (n : Nat) : Nat -> Nat"
 
-p : Program
-p = record {
-  theclasses = record { parent = object ; instvars = zero ; methods = [] }
-             ∷ record { parent = aclass zero ; instvars = zero ;
-                        methods = (record { params = 1 ; body = var (suc zero)}) ∷ [] }
-             ∷ record { parent = aclass zero ; instvars = 1 ;
-                        methods = (record { params = 1 ; 
-                                  body = class (aclass (suc (suc zero))) $
-                                    ((((var zero · fieldRef zero) · methodRef zero) $ (var (suc zero) ∷ [])) ∷ []) }) ∷ [] }
-             ∷ [] ;
-  main = class (aclass (suc zero)) $ [] }
+      pass
 
--- semantics
+  class Zero (Nat) :
 
-data Object : Set
+      def __init__(self) :
+          pass
 
-record SimpleObject : Set where
-  inductive
-  field
-    oclass : ClassVar
-    state : List Object
+      def add(self, n) :
+          return n
 
-open SimpleObject
+  class Suc(Nat) :
 
-data Object where
-  class : Class → Object -- zero = Object
-  meth : Method → SimpleObject → Object 
-  simple : SimpleObject → Object
+      def __init__(self, m) :
+          "m : Nat"
+          self.m = m
 
-dot : Classes → Object → Field → Maybe Object
-dot _ (class x) n = nothing
-dot _ (meth x _) n = nothing
-dot _ (simple x) (fieldRef n) = lookup n (state x)
-dot cls (simple x) (methodRef m) with oclass x
-... | object = nothing
-... | aclass n =
-  do c ← lookup n cls
-     g ← lookup m (methods c)
-     just (meth g x)
--- need to loop here
+      def add(self,n) :
+          return Suc(self.m.add(n))
 
-objectClass : Object 
-objectClass = class (record { parent = object ; instvars = zero ; methods = [] })
+  test1 = Zero()
+  test2 = Suc (Zero ())
+  test3 = Zero().add(Zero())
+  test3 = test2.add(test2)
+  -}
 
-apply : Classes → Object → List Object → Maybe Object
-apply cls (class x) xs = {!!}
-apply cls (meth x x₁) xs = {!!}
-apply cls (simple x) xs = nothing
 
-evalArgs : {vars : ℕ}(es : List (Expr vars)) → Classes → Vec Object vars → Maybe (List Object) 
+test : Expr 3 zero → Maybe (Object 3)
+test e = evalProg p
+  where p = record {
+              n-classes = 3 ;
+              theclasses = record { parent = object ; instvars = zero ; methods = [] }
+                         ∷ record { parent = aclass zero ; instvars = zero ;
+                                    methods = (record { params = 1 ; body = var (suc zero)}) ∷ [] }
+                         ∷ record { parent = aclass zero ; instvars = 1 ;
+                                    methods = (record { params = 1 ; 
+                                              body = class (aclass (suc (suc zero))) $
+                                                ((((var zero · fieldRef zero) · methodRef zero) $ (var (suc zero) ∷ [])) ∷ []) }) ∷ [] }
+                         ∷ [] ;
+              main = e }
 
-evalExpr : {vars : ℕ}(e : Expr vars) → Classes → Vec Object vars → Maybe Object 
-evalExpr (class object) cls env = just objectClass
-evalExpr (class (aclass x)) cls env = Data.Maybe.map class (lookup x cls) -- class (lookup {!!} {!!})
-evalExpr (var x) cls env = just (Data.Vec.lookup env x)
-evalExpr (e · fld) cls env = 
-  do
-    v ← evalExpr e cls env
-    dot cls v fld
-evalExpr (e $ es) cls env = 
-  do
-    f ← evalExpr e cls env
-    ys ← evalArgs es cls env
-    apply cls f ys
+c-Zero : Expr 3 zero
+c-Zero = class (aclass (suc zero))
 
-evalArgs  = {!!}
+e-zero : Expr 3 zero
+e-zero = c-Zero $ []
+c-Suc : Expr 3 zero
+c-Suc = class (aclass (suc (suc zero)))
+e-suc : Expr 3 zero → Expr 3 zero
+e-suc e = (c-Suc $ (e ∷ []))
+e-1 : Expr 3 zero
+e-1 = e-suc e-zero
 
-{-
-do
-  x ← just 3
-  y ← just 4
-  return (x + y)
--}
-evalProg : Program → Object
-evalProg = {!!}
 
+test1 = test e-zero
+test2 = test (e-suc e-zero)
+test3 = test ((e-zero · (methodRef 0)) $ (e-zero ∷ []))
+test4 = test ((e-1 · (methodRef 0)) $ (e-1 ∷ []))
