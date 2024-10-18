@@ -68,23 +68,121 @@ module _(n-classes : ℕ) where
 
   -- semantics
 
-  data Object : Set
+{-
+What is a Value (result of evaluating an expression with variables)
 
-  record SimpleObject : Set where
-    inductive
-    field
-      oclass : ClassVar
-      state : List Object
+x . f
+app f [ args ]    args are closures (expr , env)
 
-  open SimpleObject
+closusre expr env
 
-  data Object where
-    class : ClassVar → Object 
-    meth : Method → SimpleObject → Object 
-    simple : SimpleObject → Object
+evalExpr e env x → values or a variable
+
+
+-}
+
+
 
   module _(cls : Classes) where
 
+    data Value (free : ℕ) : Set
+
+    data Ne (vars : ℕ) : Set where
+      var : Fin vars → Ne vars
+      _·_ : Ne vars → (fld : Field) → Ne vars
+      _$_ : Ne vars → List (Value vars) → Ne vars 
+
+    data Object (free : ℕ) : Set
+
+    record SimpleObject (free : ℕ) : Set where
+      inductive
+      field
+        oclass : ClassVar
+        state : List (Value free)
+
+    open SimpleObject
+
+    data Object free where
+      class : ClassVar → Object free
+      meth : Method → (SimpleObject free) → Object free
+      simple : (SimpleObject free) → Object free
+
+    data Entry (vars : ℕ) : Set where
+      val : Value vars → Entry vars
+      var : Fin vars → Entry vars
+
+    Env : (dom cod : ℕ) → Set
+    Env dom cod = Vec (Entry dom) cod
+
+    record Closure (free : ℕ) : Set where
+      inductive
+      field
+        vars : ℕ
+        e : Ne free     -- stuck expr
+        env : Env free vars
+
+    data Value free where
+      obj : Object free → Value free
+      ne : Closure free → Value free
+
+    dot : {free : ℕ} → Value free → Field → Maybe (Value free)
+    dot (obj (class x)) n = nothing
+    dot (obj (meth x _)) n = nothing
+    dot (obj (simple x)) (fieldRef n) =
+      lookup (state x) n
+    dot (obj (simple x)) (methodRef m) with oclass x
+    ... | object = nothing
+    ... | aclass n =
+      do c ← just (vlookup cls n)
+         g ← lookup (methods c) m
+         just (obj (meth g x))
+    -- need to loop here
+    dot (ne record { vars = vars ; e = e ; env = env }) f = just (ne (record { vars = vars ; e = e · f ; env = env }))
+
+    {-# TERMINATING #-}
+    evalExpr : {free vars : ℕ}(e : Expr vars) → Env free vars → Maybe (Value free) 
+
+    apply : {free : ℕ} → Value free → List (Value free) → Maybe (Value free)
+    apply (obj (class x)) xs = just (obj (simple (record { oclass = x ; state = xs }))) -- constructor
+    apply (obj (meth x self)) xs =
+       do
+         ys ← list2vec (Data.List.map val xs)
+         evalExpr (body x) ((val (obj (simple self))) ∷ ys)
+    apply (obj (simple x)) xs = nothing
+    apply (ne record { vars = vars ; e = e ; env = env }) xs = just (ne (record { vars = vars ; e = e $ xs ; env = env }))
+
+    evalArgs : {free vars : ℕ}(es : List (Expr vars)) → Env free vars → Maybe (List (Value free)) 
+
+    evalExpr (class x) env = just (obj (class x))
+    evalExpr (var x) env with Data.Vec.lookup env x
+    ... | val x = just x
+    ... | var z = just (ne (record { vars = _ ; e = var z ; env = env }))
+    evalExpr (e · fld) env = 
+      do
+        v ← evalExpr e env
+        dot v fld
+    evalExpr (e $ es) env = 
+      do
+        f ← evalExpr e env
+        ys ← evalArgs es env
+        apply f ys
+
+    evalArgs [] env = just []
+    evalArgs (x ∷ es) env = 
+      do
+        y ← evalExpr x env
+        ys ← evalArgs es env
+        just (y ∷ ys)
+
+
+
+{-
+
+    -- x y [x := z , y = Zero() ] = z Zero()
+    -- dom        cod
+    -- { z } ---> { x , y }
+    -- Expr n -> Env m n -> Expr m
+    -- Env m n = Vec (Expr m) n
     dot : Object → Field → Maybe Object
     dot (class x) n = nothing
     dot (meth x _) n = nothing
@@ -96,6 +194,7 @@ module _(n-classes : ℕ) where
          g ← lookup (methods c) m
          just (meth g x)
     -- need to loop here
+
 
     {-# TERMINATING #-}
     evalExpr : {vars : ℕ}(e : Expr vars) → Vec Object vars → Maybe Object 
@@ -128,7 +227,7 @@ module _(n-classes : ℕ) where
         y ← evalExpr x env
         ys ← evalArgs es env
         just (y ∷ ys)
-
+-}
 
 record Program : Set where
   field
@@ -138,7 +237,7 @@ record Program : Set where
 
 open Program
 
-evalProg : (p : Program) → Maybe (Object (n-classes p))
+evalProg : (p : Program) → Maybe (Value (n-classes p) (theclasses p) zero)
 evalProg record { n-classes = n-classes ; theclasses = theclasses ; main = main } =
          evalExpr n-classes theclasses main []
 
@@ -172,18 +271,25 @@ evalProg record { n-classes = n-classes ; theclasses = theclasses ; main = main 
   -}
 
 
-test : Expr 3 zero → Maybe (Object 3)
+m-classes : ℕ
+m-classes = 3
+
+myclasses : Classes m-classes
+myclasses = record { parent = object ; instvars = zero ; methods = [] }
+            ∷ record { parent = aclass zero ; instvars = zero ;
+                       methods = (record { params = 1 ; body = var (suc zero)}) ∷ [] }
+            ∷ record { parent = aclass zero ; instvars = 1 ;
+                       methods = (record { params = 1 ; 
+                                 body = class (aclass (suc (suc zero))) $
+                                   ((((var zero · fieldRef zero) · methodRef zero) $ (var (suc zero) ∷ [])) ∷ []) }) ∷ [] }
+            ∷ [] 
+
+
+test : Expr m-classes zero → Maybe (Value m-classes myclasses zero)
 test e = evalProg p
   where p = record {
-              n-classes = 3 ;
-              theclasses = record { parent = object ; instvars = zero ; methods = [] }
-                         ∷ record { parent = aclass zero ; instvars = zero ;
-                                    methods = (record { params = 1 ; body = var (suc zero)}) ∷ [] }
-                         ∷ record { parent = aclass zero ; instvars = 1 ;
-                                    methods = (record { params = 1 ; 
-                                              body = class (aclass (suc (suc zero))) $
-                                                ((((var zero · fieldRef zero) · methodRef zero) $ (var (suc zero) ∷ [])) ∷ []) }) ∷ [] }
-                         ∷ [] ;
+              n-classes = m-classes ;
+              theclasses = myclasses;
               main = e }
 
 c-Zero : Expr 3 zero
@@ -203,3 +309,4 @@ test1 = test e-zero
 test2 = test (e-suc e-zero)
 test3 = test ((e-zero · (methodRef 0)) $ (e-zero ∷ []))
 test4 = test ((e-1 · (methodRef 0)) $ (e-1 ∷ []))
+
