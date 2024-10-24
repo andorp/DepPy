@@ -56,32 +56,10 @@ module _(n-classes : ℕ) where
 
   open Class 
 
-  {-
-  data Classes : Set where
-    [] : Classes 
-    _▷_ : Classes → Class → Classes 
-  -}
-
   Classes : Set
   Classes = Vec Class n-classes
 
-
   -- semantics
-
-{-
-What is a Value (result of evaluating an expression with variables)
-
-x . f
-app f [ args ]    args are closures (expr , env)
-
-closusre expr env
-
-evalExpr e env x → values or a variable
-
-
--}
-
-
 
   module _(cls : Classes) where
 
@@ -151,83 +129,29 @@ evalExpr e env x → values or a variable
     apply (obj (simple x)) xs = nothing
     apply (ne record { vars = vars ; e = e ; env = env }) xs = just (ne (record { vars = vars ; e = e $ xs ; env = env }))
 
-    evalArgs : {free vars : ℕ}(es : List (Expr vars)) → Env free vars → Maybe (List (Value free)) 
+    evalArgs : {free vars : ℕ}(es : List (Expr vars)) → Env free vars → Maybe (List (Value free))
 
+    evalExpr {vars} stuck env = just (ne (record {vars = vars ; e = stuck ; env = env }))
     evalExpr (class x) env = just (obj (class x))
     evalExpr (var x) env with Data.Vec.lookup env x
     ... | val x = just x
     ... | var z = just (ne (record { vars = _ ; e = var z ; env = env }))
-    evalExpr (e · fld) env = 
+    evalExpr (e · fld) env =
       do
         v ← evalExpr e env
         dot v fld
-    evalExpr (e $ es) env = 
+    evalExpr (e $ es) env =
       do
         f ← evalExpr e env
         ys ← evalArgs es env
         apply f ys
 
     evalArgs [] env = just []
-    evalArgs (x ∷ es) env = 
+    evalArgs (x ∷ es) env =
       do
         y ← evalExpr x env
         ys ← evalArgs es env
         just (y ∷ ys)
-
-
-
-{-
-
-    -- x y [x := z , y = Zero() ] = z Zero()
-    -- dom        cod
-    -- { z } ---> { x , y }
-    -- Expr n -> Env m n -> Expr m
-    -- Env m n = Vec (Expr m) n
-    dot : Object → Field → Maybe Object
-    dot (class x) n = nothing
-    dot (meth x _) n = nothing
-    dot (simple x) (fieldRef n) = lookup (state x) n
-    dot (simple x) (methodRef m) with oclass x
-    ... | object = nothing
-    ... | aclass n =
-      do c ← just (vlookup cls n)
-         g ← lookup (methods c) m
-         just (meth g x)
-    -- need to loop here
-
-
-    {-# TERMINATING #-}
-    evalExpr : {vars : ℕ}(e : Expr vars) → Vec Object vars → Maybe Object 
-
-    apply : Object → List Object → Maybe Object
-    apply (class x) xs = just (simple (record { oclass = x ; state = xs })) -- constructor
-    apply (meth x self) xs =
-      do
-        ys ← list2vec xs
-        evalExpr (body x) ((simple self) ∷ ys)
-    apply (simple x) xs = nothing
-
-    evalArgs : {vars : ℕ}(es : List (Expr vars)) → Vec Object vars → Maybe (List Object) 
-
-    evalExpr (class x) env = just (class x)
-    evalExpr (var x) env = just (Data.Vec.lookup env x)
-    evalExpr (e · fld) env = 
-      do
-        v ← evalExpr e env
-        dot v fld
-    evalExpr (e $ es) env = 
-      do
-        f ← evalExpr e env
-        ys ← evalArgs es env
-        apply f ys
-
-    evalArgs [] env = just []
-    evalArgs (x ∷ es) env = 
-      do
-        y ← evalExpr x env
-        ys ← evalArgs es env
-        just (y ∷ ys)
--}
 
 record Program : Set where
   field
@@ -304,9 +228,8 @@ e-suc e = (c-Suc $ (e ∷ []))
 e-1 : Expr 3 zero
 e-1 = e-suc e-zero
 
-
 test1 = test e-zero
 test2 = test (e-suc e-zero)
 test3 = test ((e-zero · (methodRef 0)) $ (e-zero ∷ []))
 test4 = test ((e-1 · (methodRef 0)) $ (e-1 ∷ []))
-
+test5 = test (e-suc stuck)
