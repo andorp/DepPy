@@ -1,5 +1,5 @@
 open import Data.Nat
-open import Data.Fin 
+open import Data.Fin
 open import Data.Vec hiding (lookup ; _>>=_)
 open import Data.List hiding (lookup)
 open import Data.Maybe
@@ -20,7 +20,7 @@ list2vec : List A → Maybe (Vec A n)
 list2vec {n = zero} [] = just []
 list2vec {n = zero} (x ∷ as) = nothing
 list2vec {n = suc n} [] = nothing
-list2vec {n = suc n} (x ∷ as) = 
+list2vec {n = suc n} (x ∷ as) =
   do
     ys ← list2vec {n = n} as
     just (x ∷ ys)
@@ -39,7 +39,8 @@ module _(n-classes : ℕ) where
     class : ClassVar → Expr vars
     var : Fin vars → Expr vars
     _·_ : Expr vars → (fld : Field) → Expr vars
-    _$_ : Expr vars → List (Expr vars) → Expr vars 
+    _$_ : Expr vars → List (Expr vars) → Expr vars
+    stuck : Expr vars -- helper to test the stuck expression evaluation
 
   record Method : Set where
     field
@@ -50,11 +51,11 @@ module _(n-classes : ℕ) where
 
   record Class : Set where
     field
-      parent : ClassVar 
+      parent : ClassVar
       instvars : ℕ
       methods : List Method
 
-  open Class 
+  open Class
 
   Classes : Set
   Classes = Vec Class n-classes
@@ -68,7 +69,8 @@ module _(n-classes : ℕ) where
     data Ne (vars : ℕ) : Set where
       var : Fin vars → Ne vars
       _·_ : Ne vars → (fld : Field) → Ne vars
-      _$_ : Ne vars → List (Value vars) → Ne vars 
+      _$_ : Ne vars → List (Value vars) → Ne vars
+      stuck : Ne vars
 
     data Object (free : ℕ) : Set
 
@@ -118,7 +120,7 @@ module _(n-classes : ℕ) where
     dot (ne record { vars = vars ; e = e ; env = env }) f = just (ne (record { vars = vars ; e = e · f ; env = env }))
 
     {-# TERMINATING #-}
-    evalExpr : {free vars : ℕ}(e : Expr vars) → Env free vars → Maybe (Value free) 
+    evalExpr : {free vars : ℕ}(e : Expr vars) → Env free vars → Maybe (Value free)
 
     apply : {free : ℕ} → Value free → List (Value free) → Maybe (Value free)
     apply (obj (class x)) xs = just (obj (simple (record { oclass = x ; state = xs }))) -- constructor
@@ -203,10 +205,10 @@ myclasses = record { parent = object ; instvars = zero ; methods = [] }
             ∷ record { parent = aclass zero ; instvars = zero ;
                        methods = (record { params = 1 ; body = var (suc zero)}) ∷ [] }
             ∷ record { parent = aclass zero ; instvars = 1 ;
-                       methods = (record { params = 1 ; 
+                       methods = (record { params = 1 ;
                                  body = class (aclass (suc (suc zero))) $
                                    ((((var zero · fieldRef zero) · methodRef zero) $ (var (suc zero) ∷ [])) ∷ []) }) ∷ [] }
-            ∷ [] 
+            ∷ []
 
 
 test : Expr m-classes zero → Maybe (Value m-classes myclasses zero)
