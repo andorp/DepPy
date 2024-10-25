@@ -1,7 +1,7 @@
 open import Data.Nat
 open import Data.Fin
-open import Data.Vec hiding (lookup ; _>>=_)
-open import Data.List hiding (lookup)
+open import Data.Vec hiding (lookup ; _>>=_ ; [_])
+open import Data.List hiding (lookup )
 open import Data.Maybe
 
 variable A  B C : Set
@@ -40,7 +40,6 @@ module _(n-classes : ℕ) where
     var : Fin vars → Expr vars
     _·_ : Expr vars → (fld : Field) → Expr vars
     _$_ : Expr vars → List (Expr vars) → Expr vars
-    stuck : Expr vars -- helper to test the stuck expression evaluation
 
   record Method : Set where
     field
@@ -70,7 +69,6 @@ module _(n-classes : ℕ) where
       var : Fin vars → Ne vars
       _·_ : Ne vars → (fld : Field) → Ne vars
       _$_ : Ne vars → List (Value vars) → Ne vars
-      stuck : Ne vars
 
     data Object (free : ℕ) : Set
 
@@ -93,6 +91,15 @@ module _(n-classes : ℕ) where
 
     Env : (dom cod : ℕ) → Set
     Env dom cod = Vec (Entry dom) cod
+
+    -- [ 0 , 1 , 2 ] : Vec (Fin 3) 3
+
+    upto : Vec (Fin n) n
+    upto {n = zero} = []
+    upto {n = suc n} = zero ∷ (Data.Vec.map suc upto ) 
+
+    idEnv : Env n n
+    idEnv = Data.Vec.map var upto
 
     record Closure (free : ℕ) : Set where
       inductive
@@ -133,7 +140,6 @@ module _(n-classes : ℕ) where
 
     evalArgs : {free vars : ℕ}(es : List (Expr vars)) → Env free vars → Maybe (List (Value free))
 
-    evalExpr {vars} stuck env = just (ne (record {vars = vars ; e = stuck ; env = env }))
     evalExpr (class x) env = just (obj (class x))
     evalExpr (var x) env with Data.Vec.lookup env x
     ... | val x = just x
@@ -157,15 +163,17 @@ module _(n-classes : ℕ) where
 
 record Program : Set where
   field
+    free : ℕ
     n-classes : ℕ
     theclasses : Classes n-classes
-    main : Expr n-classes zero
+    main : Expr n-classes free
 
 open Program
 
-evalProg : (p : Program) → Maybe (Value (n-classes p) (theclasses p) zero)
-evalProg record { n-classes = n-classes ; theclasses = theclasses ; main = main } =
-         evalExpr n-classes theclasses main []
+evalProg : (p : Program) → Maybe (Value (n-classes p) (theclasses p) (free p))
+evalProg record { free = free ; n-classes = n-classes ; theclasses = theclasses ; main = main } =
+         evalExpr n-classes theclasses main (idEnv n-classes theclasses)
+         
 
   {-
   class Nat :
@@ -194,6 +202,15 @@ evalProg record { n-classes = n-classes ; theclasses = theclasses ; main = main 
   test2 = Suc (Zero ())
   test3 = Zero().add(Zero())
   test3 = test2.add(test2)
+
+  (n : Nat)
+  n.add(Zero()) ==> stuck
+  Zero().add(n)   ==> n
+  n.add(Suc(Zero())) ==> stuck
+  Suc(Zero()).add(n) ==> Suc(n)
+  
+
+
   -}
 
 
@@ -211,27 +228,76 @@ myclasses = record { parent = object ; instvars = zero ; methods = [] }
             ∷ []
 
 
-test : Expr m-classes zero → Maybe (Value m-classes myclasses zero)
+test : Expr m-classes n → Maybe (Value m-classes myclasses n)
 test e = evalProg p
   where p = record {
               n-classes = m-classes ;
               theclasses = myclasses;
               main = e }
 
-c-Zero : Expr 3 zero
-c-Zero = class (aclass (suc zero))
 
-e-zero : Expr 3 zero
+c-Zero : Expr 3 n
+c-Zero = class (aclass (suc zero))
+e-zero : Expr 3 n
 e-zero = c-Zero $ []
-c-Suc : Expr 3 zero
+c-Suc : Expr 3 n
 c-Suc = class (aclass (suc (suc zero)))
-e-suc : Expr 3 zero → Expr 3 zero
+e-suc : Expr 3 n → Expr 3 n
 e-suc e = (c-Suc $ (e ∷ []))
 e-1 : Expr 3 zero
 e-1 = e-suc e-zero
 
-test1 = test e-zero
-test2 = test (e-suc e-zero)
-test3 = test ((e-zero · (methodRef 0)) $ (e-zero ∷ []))
-test4 = test ((e-1 · (methodRef 0)) $ (e-1 ∷ []))
-test5 = test (e-suc stuck)
+stuk : Expr 3 1
+stuk = e-suc (var zero)
+
+test1 = test {n = zero} e-zero
+test2 = test {n = zero} (e-suc e-zero)
+test3 = test {n = zero} ((e-zero · (methodRef 0)) $ (e-zero ∷ []))
+test4 = test {n = zero} ((e-1 · (methodRef 0)) $ (e-1 ∷ []))
+
+test5 = test {n = 1} (e-suc stuk)
+test6 = test {n = 1} (((var zero) · (methodRef 0)) $ (e-zero {n = 1} ∷ []))
+test7 = test {n = 1} (((e-zero {n = 1}) · (methodRef 0)) $ ((var zero) ∷ []))
+test8 = test {n = 1} (((var zero) · (methodRef 0)) $ (e-suc (e-zero {n = 1}) ∷ []))
+test9 = test {n = 1} (((e-suc (e-zero {n = 1})) · (methodRef 0)) $ ((var zero) ∷ []))
+
+-- Number of variables
+
+{-
+vars : ℕ
+vars = 1
+ 
+-- Variable n
+varN : Expr 3 vars
+varN = var zero  -- Represents n
+ 
+-- Zero and Suc expressions
+e-zero : Expr 3 vars
+e-zero = c-Zero $ []
+ 
+e-suc : Expr 3 vars → Expr 3 vars
+e-suc e = c-Suc $ [ e ]
+
+evalProgWithEnv : ∀ {vars} → Expr m-classes vars → Env zero vars → Maybe (Value m-classes myclasses vars)
+evalProgWithEnv e env = evalExpr m-classes myclasses e env
+
+-- Test function for expressions with variables
+testWithVar : Expr m-classes vars → Maybe (Value m-classes myclasses vars)
+testWithVar e = evalProgWithEnv e [ var zero ]
+ 
+-- Test 5: n.add(Zero())
+test5 : Maybe (Value m-classes myclasses vars)
+test5 = testWithVar ((varN · methodRef 0) $ [ e-zero ])
+ 
+-- Test 6: Zero().add(n)
+test6 : Maybe (Value m-classes myclasses vars)
+test6 = testWithVar ((e-zero · methodRef 0) $ [ varN ])
+ 
+-- Test 7: n.add(Suc(Zero()))
+test7 : Maybe (Value m-classes myclasses vars)
+test7 = testWithVar ((varN · methodRef 0) $ [ e-suc e-zero ])
+ 
+-- Test 8: Suc(Zero()).add(n)
+test8 : Maybe (Value m-classes myclasses vars)
+test8 = testWithVar ((e-suc e-zero · methodRef 0) $ [ varN ])
+-}
