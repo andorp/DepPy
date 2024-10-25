@@ -3,6 +3,7 @@ open import Data.Fin
 open import Data.Vec hiding (lookup ; _>>=_ ; [_])
 open import Data.List hiding (lookup )
 open import Data.Maybe
+open import Data.Bool
 
 variable A  B C : Set
 variable m n : ℕ
@@ -15,6 +16,19 @@ lookup (x ∷ xs) (suc n) = lookup xs n
 vlookup : Vec A n → Fin n → A
 vlookup (x ∷ xs) zero = x
 vlookup (x ∷ xs) (suc i) = vlookup xs i
+
+finEqBool : ∀ {n} → Fin n → Fin n → Bool
+finEqBool {n = zero} ()
+finEqBool {n = suc n} zero     zero     = true
+finEqBool {n = suc n} zero     (suc _)  = false
+finEqBool {n = suc n} (suc _)  zero     = false
+finEqBool {n = suc n} (suc i)  (suc j)  = finEqBool {n = n} i j
+
+natEqBool : ℕ → ℕ → Bool
+natEqBool zero     zero     = true
+natEqBool zero     (suc n)  = false
+natEqBool (suc m)  zero     = false
+natEqBool (suc m)  (suc n)  = natEqBool m n
 
 list2vec : List A → Maybe (Vec A n)
 list2vec {n = zero} [] = just []
@@ -101,16 +115,21 @@ module _(n-classes : ℕ) where
     idEnv : Env n n
     idEnv = Data.Vec.map var upto
 
-    record Closure (free : ℕ) : Set where
-      inductive
-      field
-        vars : ℕ
-        e : Ne free     -- stuck expr
-        env : Env free vars
+    -- record Closure (free : ℕ) : Set where
+    --   inductive
+    --   field
+    --     vars : ℕ
+    --     e : Ne vars     -- stuck expr  
+    --     env : Env free vars
+    -- x [ x = y ]
+    -- x [ x = Zero ]
+    -- e : Expr {x}
+    -- env : Env {y} {x}
 
     data Value free where
       obj : Object free → Value free
-      ne : Closure free → Value free
+      ne : Ne free → Value free      
+--      ne : Closure free → Value free
 
     dot : {free : ℕ} → Value free → Field → Maybe (Value free)
     dot (obj (class x)) n = nothing
@@ -124,7 +143,7 @@ module _(n-classes : ℕ) where
          g ← lookup (methods c) m
          just (obj (meth g x))
     -- need to loop here
-    dot (ne record { vars = vars ; e = e ; env = env }) f = just (ne (record { vars = vars ; e = e · f ; env = env }))
+    dot (ne n) f = just (ne (n · f))
 
     {-# TERMINATING #-}
     evalExpr : {free vars : ℕ}(e : Expr vars) → Env free vars → Maybe (Value free)
@@ -136,14 +155,20 @@ module _(n-classes : ℕ) where
          ys ← list2vec (Data.List.map val xs)
          evalExpr (body x) ((val (obj (simple self))) ∷ ys)
     apply (obj (simple x)) xs = nothing
-    apply (ne record { vars = vars ; e = e ; env = env }) xs = just (ne (record { vars = vars ; e = e $ xs ; env = env }))
+    apply (ne n) xs =
+      just (ne (n $ xs)) 
+--      just (ne (record { vars = vars ; e = e $ {!!} ; env = env }))
+-- lift : Ne vars → Env free vars → Value vars
+-- lift v env = Closure {vars = vars, 
+
 
     evalArgs : {free vars : ℕ}(es : List (Expr vars)) → Env free vars → Maybe (List (Value free))
 
     evalExpr (class x) env = just (obj (class x))
     evalExpr (var x) env with Data.Vec.lookup env x
     ... | val x = just x
-    ... | var z = just (ne (record { vars = _ ; e = var z ; env = env }))
+    ... | var z = just (ne (var z))    
+--    ... | var z = just (ne (record { vars = _ ; e = var z ; env = {!!} }))
     evalExpr (e · fld) env =
       do
         v ← evalExpr e env
@@ -160,6 +185,83 @@ module _(n-classes : ℕ) where
         y ← evalExpr x env
         ys ← evalArgs es env
         just (y ∷ ys)
+
+    evalExpr₀ : Expr n → Maybe (Value n)
+    evalExpr₀ e = evalExpr e idEnv
+
+    equalsClassVar : ClassVar -> ClassVar -> Bool
+    equalsClassVar object object = true
+    equalsClassVar (aclass f₀) (aclass f₁) = finEqBool f₀ f₁
+    equalsClassVar x y = false
+
+    equalValues : List (Value n) → List (Value n) → Maybe Bool
+
+    equalObject : Object n → Object n → Maybe Bool
+    equalObject (class c₀) (class c₁) = just (equalsClassVar c₀ c₁)
+    equalObject (class x) (meth x₁ x₂) = just false
+    equalObject (class x) (simple x₁) = just false
+    equalObject (meth x x₂) x₁ = just false
+    equalObject (simple x) (class x₁) = just false
+    equalObject (simple x) (meth x₁ x₂) = just false
+    equalObject (simple record { oclass = oclass₀ ; state = state₀ }) (simple record { oclass = oclass₁ ; state = state₁ }) =
+      if (equalsClassVar oclass₀ oclass₁) then equalValues state₀ state₁ else just false
+
+    -- equalEntry : Entry n → Entry n → Maybe Bool
+    -- equalEntry = {!!}
+
+    equalField : Field → Field → Bool
+    equalField (methodRef x₀) (methodRef x₁) = natEqBool x₀ x₁
+    equalField (methodRef x) (fieldRef x₁) = false
+    equalField (fieldRef x) (methodRef x₁) = false
+    equalField (fieldRef x₀) (fieldRef x₁) = natEqBool x₀ x₁
+
+    equalValue : Value n → Value n → Maybe Bool
+
+    equalValues [] [] = just true
+    equalValues [] (x ∷ vs₁) = just false
+    equalValues (x ∷ vs₀) [] = just false
+    equalValues (v₀ ∷ vs₀) (v₁ ∷ vs₁) = do
+      b ← equalValue v₀ v₁
+      c ← equalValues vs₀ vs₁
+      just (b ∧ c)
+
+    equalNe :  Ne n → Ne n → Maybe Bool
+    equalNe (var x₀) (var x₁) = just (finEqBool x₀ x₁)
+    equalNe (var x) (n₁ · fld) = just false
+    equalNe (var x) (n₁ $ x₁) = just false
+    equalNe (n₀ · fld) (var x) = just false
+    equalNe (n₀ · fld₀) (n₁ · fld₁) =
+      if equalField fld₀ fld₁ then equalNe n₀ n₁ else just false 
+    equalNe (n₀ · fld) (n₁ $ x) = just false
+    equalNe (n₀ $ x) (var x₁) = just false
+    equalNe (n₀ $ x) (n₁ · fld) = just false
+    equalNe (n₀ $ vs₀) (n₁ $ vs₁) = do
+      b ← equalNe n₀ n₁
+      c ← equalValues vs₀ vs₁
+      just (b ∧ c)
+
+    -- equalClosure :  Closure n → Closure n → Maybe Bool
+    -- equalClosure record { vars = vars₀ ; e = (var x₀) ; env = env₀ } record { vars = vars₁ ; e = (var x₁) ; env = env₁ } =
+    --   {!vlookup env₀ x₀!}
+    -- equalClosure record { vars = vars₀ ; e = (var x) ; env = env₀ } record { vars = vars₁ ; e = (e₁ · fld) ; env = env₁ } =
+    --   just false
+    -- equalClosure record { vars = vars₀ ; e = (var x) ; env = env₀ } record { vars = vars₁ ; e = (e₁ $ x₁) ; env = env₁ } = 
+    --   just false
+    -- equalClosure record { vars = vars₀ ; e = (e₀ · fld) ; env = env₀ } record { vars = vars₁ ; e = e₁ ; env = env₁ } = {!!}
+    -- equalClosure record { vars = vars₀ ; e = (e₀ $ x) ; env = env₀ } record { vars = vars₁ ; e = e₁ ; env = env₁ } = {!!}
+
+
+    equalValue (obj x₀) (obj x₁) = equalObject x₀ x₁
+    equalValue (obj x) (ne x₁) = just false
+    equalValue (ne x) (obj x₁) = just false
+    equalValue (ne n₀) (ne n₁) = equalNe n₀ n₁
+
+    equalExpr : Expr n → Expr n → Maybe Bool
+    equalExpr e₀ e₁ = do
+      v₀ ← evalExpr₀ e₀
+      v₁ ← evalExpr₀ e₁
+      equalValue v₀ v₁
+
 
 record Program : Set where
   field
