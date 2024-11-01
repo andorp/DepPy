@@ -131,18 +131,21 @@ module _(n-classes : ℕ) where
       ne : Ne free → Value free      
 --      ne : Closure free → Value free
 
+    {-# TERMINATING #-}
     dot : {free : ℕ} → Value free → Field → Maybe (Value free)
     dot (obj (class x)) n = nothing
     dot (obj (meth x _)) n = nothing
     dot (obj (simple x)) (fieldRef n) =
       lookup (state x) n
-    dot (obj (simple x)) (methodRef m) with oclass x
-    ... | object = nothing
-    ... | aclass n =
-      do c ← just (vlookup cls n)
-         g ← lookup (methods c) m
-         just (obj (meth g x))
-    -- need to loop here
+    dot {free} (obj (simple x)) (methodRef m) = loop (oclass x)
+      where doit : Class → Maybe (Value free)
+            doit c = do g ← lookup (methods c) m
+                        just (obj (meth g x))
+            loop : ClassVar → Maybe (Value free)
+            loop object = nothing
+            loop (aclass n) with doit (vlookup cls n)
+            loop (aclass n) | just x = just x
+            loop (aclass n) | nothing = loop (parent (vlookup cls n)) -- refactor!
     dot (ne n) f = just (ne (n · f))
 
     {-# TERMINATING #-}
