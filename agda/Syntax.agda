@@ -73,6 +73,89 @@ module _(n-classes : ℕ) where
   Classes : Set
   Classes = Vec Class n-classes
 
+  -- types
+{-
+for every class there is a class type and a class defn
+
+class-type =
+  ref parent-class
+  a sequence of
+    a type of an instance variable
+    a type for a class variable (ie methods)
+    method definitions
+
+
+NEXT STEP :
+  define untyped (and unscoped) syntax of the typed system
+  implement scope and type checker
+  should we use named syntax instead of deBruijn?
+-}
+
+  MRef : Set
+  MRef = ℕ -- should be Fin
+
+  IRef : Set
+  IRef = ℕ  -- should be Fin
+
+  data Type : Set where
+    class : ClassVar → Type
+    constr : Type → IRef → Expr zero → Type -- zero is stopgap
+    
+  record MType : Set where
+    field
+      param : List Type
+      retType : Type
+
+  data Context : Set where
+    • : Context
+    _▷i_ : Context → Type → Context
+    _▷m_ : Context → MType → Context
+    _▷d_:=_ : Context → MRef → Method → Context
+
+
+  record TypedClass : Set where
+    field
+        parent : ClassVar
+        con : Context
+
+
+
+{-
+
+  data Context : Set
+  data Decl : Context → Set where
+    ivarDecl : Ty Γ → Decl Γ
+    methDecl : MTy Γ → Decl Γ 
+
+  data Defn : Context → Set where
+    methodDef :  → Decl Γ    
+
+  data Context where
+    • : Context
+    _▷_ : (Γ : Context) → Decl Γ → Context
+    _▷_=_ : (Γ : Context) → MVar Γ → Method → Context    
+
+  data IVar : (parent : ClassVar) → Context → Set
+    inh : IVar ? (getContext parent) → IVar parent •
+    zero : IVar parent (Γ ▷ ivarDecl _)
+    suc : IVar parent Γ → IVar parent (Γ ▷ d)
+    ignore : IVar parent Γ → IVar parent (Γ ▷ _ = _)
+
+  data MVar : (parent : ClassVar) → Context → Set
+    inh : MVar ? (getContext parent) → MVar parent •
+    zero : MVar parent (Γ ▷ methodDecl _)
+    suc : MVar parent Γ → MVar parent (Γ ▷ d)
+    ignore : MVar parent Γ → MVar parent (Γ ▷ _ = _)
+    
+
+
+-}
+  
+
+--  data MethodTy : Set where
+    
+
+
   -- semantics
 
   module _(cls : Classes) where
