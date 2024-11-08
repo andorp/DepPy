@@ -136,8 +136,8 @@ class Test(unittest.TestCase) :
         """
         result = Program(classdefs,Var("x")).eval(env)
         #self.assertEqual(result.atype,"object")
-        print(result)
-#        self.assertEqual(result.state,{})     
+#        print(result)
+        self.assertTrue(result.equal(Var("x")))     
         
     def test9(self) :
         """
@@ -145,7 +145,9 @@ class Test(unittest.TestCase) :
         """
         result = Program(classdefs,Dot(Var("x"),"n")).eval(env)
         #self.assertEqual(result.atype,"object")
-        print(result)
+#        print(result)
+        self.assertTrue(result.equal(Dot(Var("x"),"n")))     
+         
 #        self.assertEqual(result.state,{})     
 
     def test10(self) :
@@ -154,8 +156,8 @@ class Test(unittest.TestCase) :
         """
         result = Program(classdefs,Apply(Var("f"),[zero_code])).eval(env)
         #self.assertEqual(result.atype,"object")
-        print(result)
-#        self.assertEqual(result.state,{})    
+#        print(result)
+        self.assertTrue(result.equal(Apply(Var("f"),[zero_code.eval(env)])))    
 
     def test11(self) :
         """
@@ -163,8 +165,9 @@ class Test(unittest.TestCase) :
         """
         result = Program(classdefs,Apply(Var("Succ"),[Var("x")])).eval(env)
         #self.assertEqual(result.atype,"object")
-        print(result)
-#        self.assertEqual(result.state,{})   
+        self.assertEqual(result.aclass.name,"Succ")
+        self.assertTrue(result.state['n'].equal(Var("x"))) 
+        
         
     def test12(self) :
         """
@@ -172,8 +175,8 @@ class Test(unittest.TestCase) :
         """
         result = Program(classdefs,Apply(Dot(zero_code,"add"),[Var("x")])).eval(env)
         #self.assertEqual(result.atype,"object")
-        print(result)
-#        self.assertEqual(result.state,{})           
+#        print(result)
+        self.assertTrue(result.equal(Var("x"))) 
 
     def test13(self) :
         """
@@ -181,49 +184,45 @@ class Test(unittest.TestCase) :
         """
         result = Program(classdefs,Apply(Dot(Var("x"),"add"),[zero_code])).eval(env)
         #self.assertEqual(result.atype,"object")
-        print(result)
-#        self.assertEqual(result.state,{})           
+        self.assertTrue(result.equal(
+                Apply(Dot(Var("x"),"add"),[zero_code.eval(env)])))    
         
+ #       print(result)
+       
     def test14(self) :
         """
-        Evaluating a stuck apply
+        Simple equality test
         """
         result = Program(classdefs,zero_code).eval()
         #self.assertEqual(result.atype,"object")
-        print(result)
-        print(result.equal(result))
+ #       print(result)
+        self.assertTrue(result.equal(result))
 #        self.assertEqual(result.state,{})   
         
         
     def test15(self) :
         """
-        Evaluating a stuck apply
+        Simple equality test
         """
         result = Program(classdefs,Var("x")).eval(env)
         #self.assertEqual(result.atype,"object")
-        print(result)
-        print(result.equal(result))
-#        self.assertEqual(result.state,{})   
-        
+        self.assertTrue(result.equal(result))
+        #print(result)
+        #print(result.equal(result))
+       
     def test16(self) :
         """
-        Evaluating a stuck apply
+        Simple equality test
         """
         result = Program(classdefs,Apply(Var("Succ"),[Var("x")])).eval(env)
         #self.assertEqual(result.atype,"object")
-        print(result)
-        print(result.equal(result))
+        self.assertTrue(result.equal(result))        
+        #print(result)
+        #print(result.equal(result))
 #        self.assertEqual(result.state,{})  
         
-    def test17(self) :
-        """
-        Evaluating a stuck apply
-        """
-        result = Program(classdefs,Apply(Var("Succ"),[Var("x")])).eval(env)
-        #self.assertEqual(result.atype,"object")
-        print(result)
-        print(result.equal(result))
 #        self.assertEqual(result.state,{})  
-
+"""
 if __name__ == '__main__':
     unittest.main()
+"""

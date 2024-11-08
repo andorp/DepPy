@@ -92,6 +92,8 @@ class ClassObj (Object) :
         return other.equalClassObject(self)
         
     def equalClassObject(self,other) :
+        return self.name == other.name      
+"""
         if self.asuper.equal(other.asuper) and \
            self.instvars == other.instvars and \
            self.methods.keys() == other.methods.keys() :
@@ -101,7 +103,7 @@ class ClassObj (Object) :
                return True
         else :
             return False
-        
+"""        
 class ObjectClassObj(Object) :
     
     def equalObject(self,other):
@@ -134,15 +136,17 @@ class MethodObj(Object) :
         return MethodObj(self.params[1:],self.expr,env)
     
     def equalObject(self,other):
-        return other.equalMethodObject(self)
+        return False
+#        return other.equalMethodObject(self)
     
     # def equalMethodObject(self,other) :
     #     from code.syntax import Var
     #     return self.params == other.params and \
     #            self.expr.equal(other.expr)
         
-    
+"""    
     def equalMethodObject(self,other) :
+        
         from code.syntax import Var
         if self.params == other.params :
            selfEnv = dict(self.env)
@@ -153,8 +157,7 @@ class MethodObj(Object) :
            return self.expr.eval(selfEnv).equal(other.expr.eval(otherEnv))
         else :
            return False
-      
-        
+"""        
  # Todo : alpha conversion by zipping"      
         
     
