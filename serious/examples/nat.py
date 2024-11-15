@@ -7,6 +7,7 @@ Created on Fri Jul 12 16:14:15 2024
 """
 import unittest
 from code.syntax import *
+from code.types import *
 
 class Nat : 
     pass
@@ -59,6 +60,19 @@ classdefs = {
         name="Succ")
     # non recursive version, still loops
 }
+   
+Nat = IsClass("Nat")
+# add : (self:Nat,n :Nat) Nat
+add_ty = MethodType("self",[("n",Nat)],Nat)
+     
+tnat = TClass("Object",[("add",MethodDecl(add_ty))])
+tzero = TClass("Nat",[("add",MethodDef(Method(["self","m"],Var("m"))))])
+tsucc = TClass("Nat",[("n",IVarDecl(Nat)),
+            ("add",MethodDef(
+                    Method(["self","m"],
+                        Apply(Var("Succ"),[Apply(Dot(Dot(Var("self"),"n"),"add"),[Var("m")])]))))])
+
+
 
 zero_code = Apply(Var("Zero"),[])
 one_code = Apply(Var("Succ"),[zero_code])
