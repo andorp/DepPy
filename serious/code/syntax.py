@@ -46,7 +46,7 @@ class Class :
     
 class Method : 
     def __init__(self,params,body,name=""):
-        # args : list str
+        # params : list str
         # body : value
         self.params = params
         self.body = body

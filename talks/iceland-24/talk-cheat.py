@@ -43,9 +43,9 @@ two = Succ (one)
 three = one.add(two)
 
 class Fin :
-    # n : Nat
-    # lookupNil (self : Fin[.n = Zero]) : (xs : Vec) : vs.A 
-    # lookupCons (self : Fin)  : (xs : VCons ) : v.A
+    "n : Nat"
+    "lookupNil (self : Fin[.n = Zero]) : (xs : Vec) : vs.A" 
+    "lookupCons (self : Fin)  : (xs : VCons ) : v.A"
     pass
 
     

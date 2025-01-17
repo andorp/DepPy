@@ -12,12 +12,17 @@ from code.types import *
 class Nat : 
     pass
 
+"add : Self -> Nat -> Nat"
+
+
 class Zero (Nat) : 
 
     def __init__(self) :
         pass
-
-    def add(self,m) :
+    
+"add : Zero -> Nat -> Nat"
+  
+  def add(self,m) :
         return m
     
     def __repr__(self) :
@@ -25,6 +30,8 @@ class Zero (Nat) :
     
 class Succ (Nat) : 
 
+"add : Succ -> Nat -> Nat"    
+    
     def __init__(self,n) : 
         self.n = n
         
