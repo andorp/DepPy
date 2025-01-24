@@ -17,20 +17,20 @@ class Nat :
 
 class Zero (Nat) : 
 
-    def __init__(self) :
+   def __init__(self) :
         pass
     
-"add : Zero -> Nat -> Nat"
+   "add : Zero -> Nat -> Nat"
   
-  def add(self,m) :
+   def add(self,m) :
         return m
     
-    def __repr__(self) :
+   def __repr__(self) :
         return "Zero()"
     
 class Succ (Nat) : 
 
-"add : Succ -> Nat -> Nat"    
+    "add : Succ -> Nat -> Nat"    
     
     def __init__(self,n) : 
         self.n = n
@@ -84,6 +84,9 @@ tsucc = TClass("Nat",[("n",IVarDecl(Nat)),
 zero_code = Apply(Var("Zero"),[])
 one_code = Apply(Var("Succ"),[zero_code])
 env = {"x" : Var("x"),"f" : Var("f")}
+
+x = tnat.check(Con({}))
+print(x)
 
 
 class Test(unittest.TestCase) :

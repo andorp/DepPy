@@ -66,6 +66,14 @@ class Expr (Value): # abstract
     # def eval(self,classenv,methenv,locenv) :
     #     return Object("test",{"x":1})   
 
+    # check : SELF -> Con -> Type -> Void
+    # infer : SELF -> Con -> Type
+
+    def check(con,ety) :
+        ity = self.infer(con) 
+        if ity != ety :
+            raise TError(f"Expected {ety} but found {ity}")
+
     def evalDot(self,field) :
         return Dot(self,field)
 
@@ -104,6 +112,8 @@ class Var (Expr) :
     def equalVar(self,other) :
         return self.name == other.name 
     
+    def infer(self,con) :
+        return con.con[self.name]
       
 class Dot (Expr) :
     def __init__(self,value,field) :
@@ -124,6 +134,9 @@ class Dot (Expr) :
     def equalDot(self,other) :
         return self.field == other.field and \
                self.value.equal(other.value)
+
+    def infer(con) :
+        return self.value.infer(con).types[self.field]
     
 class Apply(Expr) :
     def __init__(self,value,args) :
@@ -151,4 +164,22 @@ class Apply(Expr) :
         else :
             return False
 
-               
+    def infer(con) :
+        mty = self.value.infer(con)
+        def loop(args,tel):
+            if args==[] :
+                if tel==[] :
+                    return mty.ety
+                else :
+                    raise TError("Not enough args")
+            else :
+                if tel==[] :
+                    raise TError("too many args")
+                else :
+                    args.check(con,tel[0])
+                    loop(args[1:],tel[1:])
+        loop(self.args,mty.tel)
+        return mty.ety
+
+
+         

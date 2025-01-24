@@ -7,8 +7,14 @@ Created on Fri Nov 15 15:39:23 2024
 """
 from code.syntax import *
 
-class EType : # expression types
+class TError(Exception):
+    "Type error"
     pass
+
+class EType : # expression types
+
+    def check(self,con) :
+        pass
 
 class IsClass(EType) :
     
@@ -44,6 +50,7 @@ class El(EType) : # expr : Class => "El expr" is the type of instances
 class SelfType(EType) :
     def __init__(self) :
         pass
+    
 
 # Nat
 Nat = IsClass("Nat")
@@ -57,7 +64,7 @@ Nat = IsClass("Nat")
 #                          El(Dot(Var("xs"),"A")))  
 
 class ClassComp : #class component
-    "check : (self,Con,String) Void"
+    "check : (self,Con,String,CClass)CClass"
         
     pass
     
@@ -66,25 +73,29 @@ class IVarDecl (ClassComp) :
         # ety : EType
         self.ety = ety
 
-    def check(self,con,var) :
+    def check(self,con,var,cclass) :
         self.ety.check(con)
+        return cclass.addTy(var,self.ety)
         
 class MethodDecl (ClassComp) :
     def __init__(self,mtype)       :
          # mtype : MType
          self.mtype = mtype
 
-    def check(self,con,var) :
-        self.mtype.check(tclasses,con)
-        
+    def check(self,con,var,cclass) :
+        self.mtype.check(con)
+        return cclass.addTy(var,self.mtype)
+
 class MethodDef (ClassComp) :
     def __init__(self,mdef)       :
          # mdef : Method
         self.mdef = mdef
 
-    def check(self,con,var) :
-        mtype = con.lookupMtype(var)  
-        con = con.addTvar(mtype.self_var,SelfType())
+    def check(self,con,var,cclass) :
+        mtype = con.con[var] # lookup method type
+        con = con.add(mtype.self_var,SelfType())
+        # loop through the params and check each type
+        # add the assumption that the parametre has the given type
         def loop (tvars , params , con) :
             if tvars == [] :
                 if params != [] :
@@ -96,31 +107,43 @@ class MethodDef (ClassComp) :
                 if tvars[0][0] != params[0] :
                     raise TError("mdef : diff params(3)")
                 tvars[0][1].check(con)
-                loop(tvars[1:],params[1:],con.addVar(tvars[0]))
+                loop(tvars[1:],params[1:],con.add(tvars[0]))
         loop(mtype.tel,self.mdef.params,con)
-        # lookup method type
-        # loop thorough the params and check each type
-        # add the assumption that the parametr has the given type
-        
+        self.mdef.body.check(con,ety)
+        return cclass.addMethod(self,var,mdef)
+
+                
 class TProgram :
     "tclasses : List (String , TClass) "
-    "mtype : EType"
     "main : Expr"
     
     def __init__(self,tclasses,mtype,main) :
         self.tclasses = classes
-        self.mtype = mtype
         self.main = main
         
-    "check : self -> Void"
+    "infer : self -> Type"
     def check(self) :
         def loop(tclasses,con) :
             if tclasses == [] :
-                return
+                return self.main.infer(con)  
             else :
-                tclasses[0][0].check(con)
-                loop(tclasses[1:],con.addClass(tclasses[0]))
-        loop(tclasses,emptyCon)
+                return loop(tclasses[1:],con.add(tclasses[0][0],
+                            tclasses[0][0].check(con)))
+        return loop(tclasses,Con({}))
+        
+class CClass : # checked class
+    "types : Con"
+    "methods : Con"
+    def __init__(self,types,methods) :
+        self.types = types
+        self.methods = methods
+        
+    def addTy(self,var,ety):
+        return CClass(self.types.add(var,ety),self.methods)
+ 
+    def addMethod(self,var,method):
+        return CClass(self.types,self.methods.add(var,method))
+                      
 
 class TClass :
     
@@ -132,43 +155,31 @@ class TClass :
         self.comps = comps
         self.name = name
 
-    "check : self -> Con -> Void"
+    "check : self -> Con -> CClass"
 
     def check(self,con) :
-        def loop(comps,con) :
+        def loop(comps,con,cclass) :
             if comps==[] :
-                return
+                return cclass
             else :
-                comps[0][1].check(con,comps[0][0])
-                loop(comps[1:],ch_comps.addComp(comps[0]))
-        loop(self.comps,con)
-
-class Context :
+                return loop(comps[1:],con.add(comps[0][0],comps[0][1]),
+                            comps[0][1].check(con,comps[0][0],cclass))
+        return loop(self.comps,con,CClass(Con({}),Con({})))
+        
+class Con :
     
-    "classes : Dict TClass"
-    "comps : Dict ClassComp"
-    "tvars : Dict EType"
+    "con : Dict(Objects)"
+    "just a functional wrapper for dictionaries"
     
-    def __init__(self, classes, comps, tvars) :
-        self.classes= classes
-        self.comps = comps
-        self.tvars = tvars        
+    def __init__(self, con) :
+        self.con= con
 
-    "addClass : (self , (String,TClass)) -> Con"        
-    def addClass(self,pair) :
-        return Context(self.classes.copy()[pair[0]]=pair[1],self.comps,self.tvars)
+    "add : SELF ->  String -> Object  -> Con"      
+    def add(self,var,obj) :
+        newcon = self.con.copy()
+        newcon[var]=obj
+        return Con(newcon)
 
-    "addComp : (self , (String,ClassComp)) -> Con"        
-    def addComp(self,pair) :
-        return Context(self.classes,self.comps.copy()[pair[0]]=pair[1],self.tvars)
-
-    "addVar : (self , (String,Ety)) -> Con"     
-    def addVar(self,pair) :
-        return Context(self.classes,self.comps,self.tvars.copy()[pair[0]]=pair[1])
-
-
-def emptyCon() :
-    return Context({},{},{})
 
 
 add_ty = MethodType("self",[("n",Nat)],Nat)
