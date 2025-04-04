@@ -1,0 +1,50 @@
+* where we are
+partial implementation in python
+evaluator for closed expressions
+implemented symbolic conversion (status?)
+started to work on a type checker
+some examples (eg unit tests)
+started some agda development (status ?)
+* where we want to be
+more examples
+in particular explore interaction of inheritance and types
+complete the type checker in python
+integrate the type checker via plugins
+
+complete agda formalisation 
+integrate effects like exception and state
+
+publish a paper
+having a research grant
+develop industry contacts
+do bigger examples / applications
+
+* how to get there
+
+need to add more examples
+finish the type checker in python and test it 
+organize hackathons
+
+develop a usuable prototype (pure functional, alpha version)
+and then advertise it (computerphile)
+solicit interest (lambda days, lambda conf)
+
+after derive a agda model of the type checker
+
+write a high level summary of the project
+
+write a paper (need to study competitors more)
+scope: basic type checker for functional python
+discussion of extensions
+
+check how our approach fits with current best practices
+can we implement interfaces to existing libraries 
+integration of automatic theorem proving, machine learning
+consistent refactoring
+
+idea: assertions the type checker cannot verify can be turned into runtime checks. 
+
+project: implement the extensions
+formally prove desirable properties
+do bigger examples to demonstrate feasibility
+
